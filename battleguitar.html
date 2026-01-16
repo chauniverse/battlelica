@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>배틀기타: PvP 시뮬레이터 V2</title>
+    <style>
+        /* --- 기본 스타일 --- */
+        body {
+            background-color: #050505;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            cursor: default;
+        }
+
+        /* --- 레이아웃 --- */
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+            background: #111;
+            position: relative;
+        }
+
+        /* 플레이어 구역 */
+        .player-area {
+            flex: 1;
+            padding: 10px;
+            transition: all 0.5s ease;
+            display: flex;
+            flex-direction: column;
+            border-bottom: 1px solid #333;
+            position: relative;
+        }
+        #p2-area { border-bottom: 2px solid #555; }
+
+        /* 턴 활성화 시각 효과 */
+        .active-turn {
+            background-color: #1a1a1a;
+            box-shadow: inset 0 0 20px rgba(0, 255, 204, 0.1);
+            opacity: 1;
+        }
+        .inactive-turn {
+            background-color: #000;
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        /* --- 중앙 정보창 (로그 & 튜너 가이드) --- */
+        #center-area {
+            height: 140px; /* 공간 확보 */
+            background: #000;
+            border-top: 1px solid #333;
+            border-bottom: 1px solid #333;
+            display: flex;
+            flex-direction: row;
+        }
+
+        #game-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+            font-size: 0.8em;
+            color: #888;
+            border-right: 1px solid #333;
+        }
+
+        /* 튜너 가이드 (요청사항 3) */
+        #tuner-guide {
+            width: 140px;
+            padding: 5px;
+            font-size: 0.7em;
+            color: #aaa;
+            background: #0e0e0e;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .guide-title { color: #00ffcc; font-weight: bold; border-bottom: 1px solid #444; margin-bottom: 4px; }
+        .guide-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .dice-icon { font-weight: bold; }
+        .dice-d6 { color: #ff5555; }
+        .dice-d10 { color: #55aaff; }
+        .dice-d20 { color: #ffee00; }
+
+        /* --- UI 컴포넌트 --- */
+        .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .hp-bar { font-size: 1.2em; font-weight: bold; color: #ff0055; }
+        .energy-bar { color: #ffff00; font-weight: bold; }
+        
+        /* 필드 존 (페달보드) */
+        .field-zone {
+            flex: 1;
+            border: 1px dashed #333;
+            margin: 5px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        /* 핸드 존 */
+        .hand-zone {
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            align-items: flex-end;
+        }
+
+        /* --- 카드 디자인 --- */
+        .card {
+            width: 70px;
+            height: 90px;
+            background: #222;
+            border: 1px solid #555;
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 0.7em;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            transition: transform 0.2s;
+        }
+        .card:hover { transform: translateY(-10px); z-index: 10; border-color: #00ffcc; }
+        .card-name { font-weight: bold; color: #fff; text-align: center; word-break: keep-all; }
+        .card-cost { position: absolute; top: 2px; right: 2px; color: #ff0; font-weight: bold; }
+        .card-type { font-size: 0.8em; color: #aaa; text-align: center; }
+
+        /* 요청사항 4: 필드 카드 세로 배치 (회전 제거) */
+        .field-card {
+            width: 60px;
+            height: 80px;
+            background: #1a1a1a;
+            border: 2px solid #555; /* 스톰프 박스 느낌 */
+            border-radius: 6px;
+            margin: 0 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7em;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .knob {
+            width: 8px; height: 8px; border-radius: 50%; background: #333; border: 1px solid #777;
+            margin: 2px; display: inline-block;
+        }
+
+        /* --- 툴팁 (요청사항 1) --- */
+        #tooltip {
+            position: fixed;
+            display: none;
+            background: rgba(0, 0, 0, 0.95);
+            border: 1px solid #00ffcc;
+            padding: 10px;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 0.8em;
+            pointer-events: none; /* 마우스 이벤트 방해 안 함 */
+            z-index: 1000;
+            width: 200px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+        #tooltip h4 { margin: 0 0 5px 0; color: #00ffcc; }
+        #tooltip p { margin: 0; line-height: 1.4; color: #ccc; }
+
+        /* --- 컨트롤 및 주사위 --- */
+        .control-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 5px; }
+        button { background: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; cursor: pointer; }
+        button:hover { border-color: #00ffcc; color: #00ffcc; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; color: #888; }
+
+        /* 주사위 결과창 (요청사항 2를 위한 개별 span) */
+        .dice-container { 
+            background: #000; 
+            border: 1px solid #333; 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            display: inline-flex;
+            gap: 10px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.1em;
+            min-width: 120px;
+            justify-content: center;
+        }
+        .dice-val { width: 30px; text-align: center; display: inline-block; }
+
+    </style>
+</head>
+<body>
+
+<div id="tooltip">
+    <h4 id="tt-title">Title</h4>
+    <p id="tt-desc">Description here.</p>
+    <div style="margin-top:5px; font-size:0.9em; color:#ff0">Cost: <span id="tt-cost">0</span></div>
+</div>
+
+<div id="game-container">
+    
+    <div id="p2-area" class="player-area inactive-turn">
+        <div class="status-row">
+            <div><span style="color:#00ccff">PLAYER 2</span> <span class="hp-bar">HP: <span id="p2-hp">30</span></span></div>
+            <div class="energy-bar">⚡ <span id="p2-energy">0</span></div>
+        </div>
+        
+        <div class="hand-zone" id="p2-hand"></div>
+
+        <div class="control-row">
+            <button onclick="actions.rollTuner('p2')" id="p2-btn-tuner">🎲 튜너</button>
+            <div class="dice-container">
+                <span id="p2-d6" class="dice-val dice-d6">-</span>
+                <span id="p2-d10" class="dice-val dice-d10">-</span>
+                <span id="p2-d20" class="dice-val dice-d20">-</span>
+            </div>
+            <button onclick="actions.attack('p2')" id="p2-btn-attack" disabled>⚔️ 공격</button>
+        </div>
+        <div class="field-zone" id="p2-field"></div>
+    </div>
+
+    <div id="center-area">
+        <div id="game-log"><div>--- BATTLE START ---</div></div>
+        
+        <div id="tuner-guide">
+            <div class="guide-title">TUNER MANUAL</div>
+            <div class="guide-row"><span class="dice-icon dice-d6">1d6</span> <span>4↑ : +1 ATK</span></div>
+            <div class="guide-row"><span class="dice-icon dice-d10">1d10</span> <span>6↑ : +2 ATK</span></div>
+            <div class="guide-row"><span class="dice-icon dice-d20">1d20</span> <span>15↑: +5 ATK</span></div>
+            <div style="font-size:0.6em; margin-top:5px; color:#666;">*조건 달성 시 합산됨</div>
+        </div>
+    </div>
+
+    <div id="p1-area" class="player-area active-turn">
+        <div class="field-zone" id="p1-field"></div>
+
+        <div class="control-row">
+            <button onclick="actions.rollTuner('p1')" id="p1-btn-tuner">🎲 튜너</button>
+            <div class="dice-container">
+                <span id="p1-d6" class="dice-val dice-d6">-</span>
+                <span id="p1-d10" class="dice-val dice-d10">-</span>
+                <span id="p1-d20" class="dice-val dice-d20">-</span>
+            </div>
+            <button onclick="actions.attack('p1')" id="p1-btn-attack" disabled>⚔️ 공격</button>
+        </div>
+
+        <div class="hand-zone" id="p1-hand"></div>
+
+        <div class="status-row">
+            <div><span style="color:#00ffcc">PLAYER 1</span> <span class="hp-bar">HP: <span id="p1-hp">30</span></span></div>
+            <div class="energy-bar">⚡ <span id="p1-energy">0</span></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // --- 데이터 (설명 추가됨) ---
+    const CARD_DB = [
+        { name: "오버드라이브", type: "effector", cost: 1, atk: 2, def: 0, life: 2, color: "#ff5555", desc: "기본적인 드라이브 페달.\n지속 공격력을 2 올려줍니다." },
+        { name: "디스토션", type: "effector", cost: 2, atk: 4, def: 0, life: 2, color: "#ff0000", desc: "강력한 왜곡 효과.\n지속 공격력을 4 올려줍니다." },
+        { name: "코러스", type: "effector", cost: 1, atk: 0, def: 1, life: 3, color: "#00ccff", desc: "소리를 풍성하게 합니다.\n상대의 공격을 1 방어합니다." },
+        { name: "딜레이", type: "effector", cost: 2, atk: 1, def: 1, life: 2, color: "#ffee00", desc: "메아리 효과.\n공격력+1, 방어력+1 효과를 줍니다." },
+        { name: "파워코드", type: "special", cost: 1, effect: "dmg3", color: "#ffffff", desc: "즉발 공격 스킬.\n상대에게 즉시 3의 피해를 줍니다." },
+        { name: "급속충전", type: "special", cost: 0, effect: "eng2", color: "#ffff00", desc: "보조 배터리 연결.\n에너지를 2 회복합니다." }
+    ];
+
+    class Player {
+        constructor(id) {
+            this.id = id;
+            this.hp = 30;
+            this.energy = 0;
+            this.deck = this.createDeck();
+            this.hand = [];
+            this.trash = [];
+            this.field = [];
+            this.tunerBonus = 0;
+            this.tunerRolled = false;
+        }
+
+        createDeck() {
+            let deck = [];
+            for(let i=0; i<30; i++) {
+                const template = CARD_DB[i % CARD_DB.length];
+                deck.push({ ...template, uid: Math.random() });
+            }
+            return deck.sort(() => Math.random() - 0.5);
+        }
+
+        draw(amount) {
+            for(let i=0; i<amount; i++) {
+                if(this.hand.length >= 6) break;
+                if(this.deck.length === 0) {
+                    if(this.trash.length === 0) break;
+                    log(`🔄 ${this.id} 덱 리필`);
+                    this.deck = this.trash.sort(() => Math.random() - 0.5);
+                    this.trash = [];
+                }
+                this.hand.push(this.deck.pop());
+            }
+        }
+    }
+
+    const game = {
+        turn: 1,
+        activePlayer: 'p1',
+        p1: new Player('p1'),
+        p2: new Player('p2'),
+        animating: false // 애니메이션 중 클릭 방지
+    };
+
+    const actions = {
+        startTurn: () => {
+            const p = game[game.activePlayer];
+            p.energy = Math.min(10, p.energy + 1);
+            p.draw(1);
+            p.tunerRolled = false;
+            p.tunerBonus = 0;
+            
+            // 주사위 화면 초기화
+            document.getElementById(`${game.activePlayer}-d6`).innerText = "-";
+            document.getElementById(`${game.activePlayer}-d10`).innerText = "-";
+            document.getElementById(`${game.activePlayer}-d20`).innerText = "-";
+
+            log(`=== Turn ${game.turn} : ${game.activePlayer.toUpperCase()} ===`);
+            render();
+        },
+
+        playCard: (pid, idx) => {
+            if(game.activePlayer !== pid || game.animating) return;
+            const p = game[pid];
+            const card = p.hand[idx];
+
+            if(p.energy < card.cost) return alert("에너지 부족!");
+
+            p.energy -= card.cost;
+            p.hand.splice(idx, 1);
+
+            if(card.type === 'effector') {
+                if(p.field.length >= 3) {
+                    p.energy += card.cost; p.hand.push(card);
+                    return alert("필드 꽉 참!");
+                }
+                p.field.push({ ...card, currentLife: card.life });
+            } else {
+                actions.resolveSpecial(pid, card);
+                p.trash.push(card);
+            }
+            // 툴팁 숨기기 (카드가 사라지므로)
+            hideTooltip();
+            render();
+        },
+
+        resolveSpecial: (pid, card) => {
+            const enemyId = pid === 'p1' ? 'p2' : 'p1';
+            if(card.effect === 'dmg3') {
+                game[enemyId].hp = Math.max(0, game[enemyId].hp - 3);
+                log(`💥 파워코드! 상대 -3 HP`);
+            } else if(card.effect === 'eng2') {
+                game[pid].energy += 2;
+                log(`🔋 충전! 에너지 +2`);
+            }
+        },
+
+        // --- 요청사항 2: 주사위 애니메이션 ---
+        rollTuner: (pid) => {
+            if(game.activePlayer !== pid || game.animating) return;
+            
+            game.animating = true; // 조작 잠금
+            document.getElementById(`${pid}-btn-tuner`).disabled = true;
+
+            const d6El = document.getElementById(`${pid}-d6`);
+            const d10El = document.getElementById(`${pid}-d10`);
+            const d20El = document.getElementById(`${pid}-d20`);
+
+            // 최종 결과 미리 계산
+            const resD6 = Math.ceil(Math.random()*6);
+            const resD10 = Math.ceil(Math.random()*10);
+            const resD20 = Math.ceil(Math.random()*20);
+
+            let bonus = 0;
+            if(resD6 >= 4) bonus += 1;
+            if(resD10 >= 6) bonus += 2;
+            if(resD20 >= 15) bonus += 5;
+
+            // 룰렛 효과 함수
+            const scramble = (el, max) => {
+                el.innerText = Math.ceil(Math.random() * max);
+            };
+
+            // 1. 셋 다 막 돌아감
+            const interval = setInterval(() => {
+                scramble(d6El, 6);
+                scramble(d10El, 10);
+                scramble(d20El, 20);
+            }, 50);
+
+            // 2. 시간차로 멈추기 (1번줄 -> 2번줄 -> 3번줄)
+            // 0.5초 뒤 d6 멈춤
+            setTimeout(() => {
+                clearInterval(interval);
+                d6El.innerText = resD6;
+                d6El.style.color = resD6 >= 4 ? "#fff" : "#555"; // 성공시 밝게
+
+                // 남은 두개 계속 돌아감
+                const int2 = setInterval(() => {
+                    scramble(d10El, 10);
+                    scramble(d20El, 20);
+                }, 50);
+
+                // 1.0초 뒤 d10 멈춤
+                setTimeout(() => {
+                    clearInterval(int2);
+                    d10El.innerText = resD10;
+                    d10El.style.color = resD10 >= 6 ? "#fff" : "#555";
+
+                    // 마지막 하나 계속 돌아감
+                    const int3 = setInterval(() => {
+                        scramble(d20El, 20);
+                    }, 50);
+
+                    // 1.5초 뒤 d20 멈춤 및 결과 적용
+                    setTimeout(() => {
+                        clearInterval(int3);
+                        d20El.innerText = resD20;
+                        d20El.style.color = resD20 >= 15 ? "#fff" : "#555";
+
+                        // 최종 처리
+                        game[pid].tunerBonus = bonus;
+                        game[pid].tunerRolled = true;
+                        game.animating = false; // 잠금 해제
+                        log(`🎲 튜너 완료! (공격력 +${bonus})`);
+                        render(); // 버튼 활성화를 위해 렌더링
+
+                    }, 500);
+                }, 500);
+            }, 500);
+        },
+
+        attack: (pid) => {
+            if(game.activePlayer !== pid || game.animating) return;
+            const p = game[pid];
+            const enemy = game[pid === 'p1' ? 'p2' : 'p1'];
+
+            let totalAtk = p.tunerBonus;
+            p.field.forEach(c => totalAtk += c.atk);
+            let totalDef = 0;
+            enemy.field.forEach(c => totalDef += c.def);
+
+            let dmg = Math.max(0, totalAtk - totalDef);
+            enemy.hp = Math.max(0, enemy.hp - dmg);
+            log(`⚔️ 공격! ${dmg} 피해를 입혔습니다.`);
+
+            if(enemy.hp <= 0) {
+                alert(`${pid} 승리!`);
+                location.reload();
+            } else {
+                actions.endTurn(pid);
+            }
+        },
+
+        endTurn: (pid) => {
+            const p = game[pid];
+            p.field = p.field.filter(c => {
+                c.currentLife--;
+                if(c.currentLife <= 0) {
+                    p.trash.push(c);
+                    return false;
+                }
+                return true;
+            });
+            game.turn++;
+            game.activePlayer = pid === 'p1' ? 'p2' : 'p1';
+            actions.startTurn();
+        }
+    };
+
+    // --- 툴팁 기능 (요청사항 1) ---
+    const tooltip = document.getElementById('tooltip');
+    
+    function showTooltip(e, card) {
+        document.getElementById('tt-title').innerText = card.name;
+        document.getElementById('tt-desc').innerText = card.desc; // 상세 설명
+        document.getElementById('tt-cost').innerText = card.cost;
+        
+        tooltip.style.display = 'block';
+        moveTooltip(e);
+    }
+
+    function moveTooltip(e) {
+        // 마우스 오른쪽 아래에 위치
+        const x = e.clientX + 15;
+        const y = e.clientY + 15;
+        
+        // 화면 밖으로 나가지 않게 조정
+        tooltip.style.left = Math.min(x, window.innerWidth - 220) + 'px';
+        tooltip.style.top = Math.min(y, window.innerHeight - 150) + 'px';
+    }
+
+    function hideTooltip() {
+        tooltip.style.display = 'none';
+    }
+
+    // --- 렌더링 ---
+    function render() {
+        renderPlayer('p1');
+        renderPlayer('p2');
+        
+        document.getElementById('p1-area').className = 
+            `player-area ${game.activePlayer === 'p1' ? 'active-turn' : 'inactive-turn'}`;
+        document.getElementById('p2-area').className = 
+            `player-area ${game.activePlayer === 'p2' ? 'active-turn' : 'inactive-turn'}`;
+    }
+
+    function renderPlayer(pid) {
+        const p = game[pid];
+        document.getElementById(`${pid}-hp`).innerText = p.hp;
+        document.getElementById(`${pid}-energy`).innerText = p.energy;
+
+        const isMyTurn = game.activePlayer === pid;
+        // 애니메이션 중이면 버튼 비활성화
+        document.getElementById(`${pid}-btn-tuner`).disabled = !isMyTurn || p.tunerRolled || game.animating;
+        document.getElementById(`${pid}-btn-attack`).disabled = !isMyTurn || game.animating;
+
+        // 핸드 렌더링
+        const handEl = document.getElementById(`${pid}-hand`);
+        handEl.innerHTML = '';
+        p.hand.forEach((card, idx) => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.style.borderColor = card.color;
+            el.innerHTML = `
+                <div class="card-name">${card.name}</div>
+                <div class="card-type">${card.type === 'effector' ? 'EF' : 'SK'}</div>
+                <div class="card-cost">⚡${card.cost}</div>
+            `;
+            
+            // 툴팁 이벤트 연결
+            el.onmouseenter = (e) => showTooltip(e, card);
+            el.onmousemove = (e) => moveTooltip(e);
+            el.onmouseleave = hideTooltip;
+
+            if(isMyTurn) el.onclick = () => actions.playCard(pid, idx);
+            else el.style.opacity = 0.5;
+
+            handEl.appendChild(el);
+        });
+
+        // 필드 렌더링 (세로 배치 반영)
+        const fieldEl = document.getElementById(`${pid}-field`);
+        fieldEl.innerHTML = ''; // 텍스트 제거하고 카드만 배치
+        if(p.field.length === 0) fieldEl.innerHTML = '<span style="font-size:0.7em; color:#444;">PEDAL BOARD</span>';
+        
+        p.field.forEach(card => {
+            const el = document.createElement('div');
+            el.className = 'field-card'; // 세로 스타일 클래스
+            el.style.borderColor = card.color;
+            el.innerHTML = `
+                <div class="knob"></div>
+                <div style="font-weight:bold; color:#fff; margin-bottom:5px;">${card.name}</div>
+                <div style="color:#aaa;">Turn: ${card.currentLife}</div>
+            `;
+            
+            // 필드 카드에도 툴팁 적용
+            el.onmouseenter = (e) => showTooltip(e, card);
+            el.onmousemove = (e) => moveTooltip(e);
+            el.onmouseleave = hideTooltip;
+            
+            fieldEl.appendChild(el);
+        });
+    }
+
+    function log(msg) {
+        const box = document.getElementById('game-log');
+        const line = document.createElement('div');
+        line.innerText = msg;
+        box.prepend(line);
+    }
+
+    window.onload = () => {
+        game.p1.draw(5);
+        game.p2.draw(5);
+        actions.startTurn();
+    };
+</script>
+</body>
+</html>
