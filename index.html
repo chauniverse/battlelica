@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BATTLELICA: MOBILE</title>
+    <title>BATTLELICA: TUNER UPDATE</title>
     <style>
         /* --- 공통 스타일 --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
             background-color: #050505; color: #e0e0e0; 
             font-family: 'Courier New', monospace; margin: 0; 
-            height: 100vh; height: 100dvh; /* 모바일 주소창 대응 */
+            height: 100vh; height: 100dvh; 
             overflow: hidden; user-select: none; 
             display: flex; flex-direction: column;
         }
         
-        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -23,9 +22,9 @@
         /* --- 시작 화면 --- */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 999;
+            background: #000; z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 20px;
+            padding: 20px; transition: opacity 0.5s;
         }
         .title-logo { 
             font-size: 3em; font-weight: bold; color: #ff0055; 
@@ -62,28 +61,46 @@
         #btn-start-game.visible { opacity: 1; pointer-events: auto; }
         
         #btn-rules {
-            font-size: 1em; padding: 10px; background: #333; color: #fff; border: 1px solid #fff; cursor: pointer; width: 100%;
+            font-size: 1em; padding: 12px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; cursor: pointer; width: 100%;
+            transition: 0.3s;
         }
+        #btn-rules:hover { background: #00ffcc; color: #000; }
 
-        /* --- 룰 팝업 (모달) --- */
-        #rule-modal {
+        /* --- [NEW] 상세 룰북 화면 (전체화면) --- */
+        #rule-screen {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 3000; flex-direction: column; padding: 20px;
+            background: #0a0a0a; z-index: 5000; flex-direction: column;
         }
-        .rule-content {
-            background: #111; border: 2px solid #00ffcc; padding: 20px; border-radius: 10px;
-            overflow-y: auto; max-width: 600px; margin: 0 auto; color: #ccc; font-size: 0.9em;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.2);
+        .rule-header {
+            padding: 15px; background: #111; border-bottom: 2px solid #ff0055;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        .rule-content h2 { color: #00ffcc; border-bottom: 1px solid #333; padding-bottom: 10px; margin-top: 0; }
-        .rule-content h3 { color: #ff0055; margin-top: 20px; margin-bottom: 5px; }
-        .rule-content p { margin: 5px 0; line-height: 1.5; }
-        .close-rule {
-            margin-top: 20px; padding: 10px; background: #00ffcc; color: #000; border: none; 
-            font-weight: bold; width: 100%; cursor: pointer; font-size: 1.1em;
+        .rule-title { font-size: 1.2em; font-weight: bold; color: #ff0055; letter-spacing: 2px; }
+        .rule-body {
+            flex: 1; overflow-y: auto; padding: 20px; font-size: 0.9em; color: #ccc; line-height: 1.6;
+        }
+        .rule-section { margin-bottom: 30px; border-bottom: 1px dashed #333; padding-bottom: 20px; }
+        .rule-section h3 { color: #00ffcc; margin-top: 0; border-left: 4px solid #00ffcc; padding-left: 10px; }
+        .rule-section h4 { color: #ffeb3b; margin: 15px 0 5px 0; }
+        .rule-section ul { padding-left: 20px; margin: 5px 0; }
+        .rule-section li { margin-bottom: 5px; }
+        .highlight { color: #fff; font-weight: bold; }
+        
+        /* 튜너 테이블 스타일 */
+        .tuner-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
+        .tuner-table th, .tuner-table td { border: 1px solid #444; padding: 8px; text-align: center; }
+        .tuner-table th { background: #222; color: #00ffcc; }
+        .dice-icon { font-weight: bold; display: inline-block; width: 20px; }
+        .d6-col { color: #ff5555; }
+        .d10-col { color: #55aaff; }
+        .d20-col { color: #ffee00; }
+
+        .close-rule-btn {
+            background: #ff0055; color: #fff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 4px;
         }
 
-        /* --- 오버레이 --- */
+        /* --- 오버레이 (룰렛, 게임오버) --- */
         #roulette-overlay, #gameover-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000;
             display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -103,7 +120,7 @@
         .active-turn { background-color: #1a1a1a; box-shadow: inset 0 0 30px rgba(0, 255, 204, 0.05); }
         .inactive-turn { background-color: #000; opacity: 0.5; pointer-events: none; filter: grayscale(80%); }
 
-        /* 중앙 정보창 (모바일에서 축소) */
+        /* 중앙 정보창 */
         #center-area { 
             height: 15vh; max-height: 100px; background: #080808; 
             border-top: 1px solid #333; border-bottom: 1px solid #333; 
@@ -111,13 +128,9 @@
         }
         #game-log { flex: 1; overflow-y: auto; padding: 5px; font-size: 0.7em; color: #aaa; border-right: 1px solid #333; line-height: 1.3; }
         #tuner-guide { width: 120px; padding: 5px; font-size: 0.6em; color: #888; background: #0e0e0e; display: flex; flex-direction: column; justify-content: center; }
-        .guide-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
         
         /* 카드 및 필드 */
-        .hand-zone { 
-            height: 90px; display: flex; justify-content: center; gap: 5px; align-items: flex-end; 
-            margin-bottom: 5px;
-        }
+        .hand-zone { height: 90px; display: flex; justify-content: center; gap: 5px; align-items: flex-end; margin-bottom: 5px; }
         .field-zone { 
             flex: 1; border: 1px dashed #333; margin: 2px 0; display: flex; 
             justify-content: center; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); 
@@ -129,7 +142,7 @@
             padding: 3px; font-size: 0.6em; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: space-between;
             box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.2s;
         }
-        .card:active { transform: scale(0.95); } /* 모바일 터치 피드백 */
+        .card:active { transform: scale(0.95); } 
         .card.locked { filter: grayscale(100%); opacity: 0.5; pointer-events: none; }
         .card-name { font-weight: bold; color: #fff; text-align: center; line-height: 1.1; margin-top: 2px; word-break: break-all;}
         .card-cost { position: absolute; top: 2px; right: 3px; color: #ffeb3b; font-weight: bold; font-size: 1.2em; }
@@ -155,12 +168,8 @@
         }
         
         .tuner-mod-ui { display: flex; gap: 8px; margin-top: 3px; justify-content: center; }
-        .mod-btn { 
-            background: #222; border: 1px solid #00ccff; color: #00ccff; font-size: 0.6em; padding: 2px; cursor: pointer; width: 25px;
-        }
-        .confirm-btn {
-            margin-top: 3px; background: #00ff66; color: #000; border: none; font-weight: bold; cursor: pointer; padding: 2px 8px; font-size: 0.7em;
-        }
+        .mod-btn { background: #222; border: 1px solid #00ccff; color: #00ccff; font-size: 0.6em; padding: 2px; cursor: pointer; width: 25px; }
+        .confirm-btn { margin-top: 3px; background: #00ff66; color: #000; border: none; font-weight: bold; cursor: pointer; padding: 2px 8px; font-size: 0.7em; }
 
         button { background: #333; color: #fff; border: 1px solid #555; padding: 6px 10px; cursor: pointer; font-family: inherit; font-size: 0.8em; }
         button:hover { border-color: #00ffcc; color: #00ffcc; }
@@ -169,8 +178,8 @@
         /* 툴팁 */
         #tooltip { 
             position: fixed; display: none; background: rgba(0,0,0,0.95); border: 1px solid #00ffcc; 
-            padding: 10px; width: 200px; z-index: 2000; pointer-events: none; 
-            top: 50% !important; left: 50% !important; transform: translate(-50%, -50%); /* 모바일 중앙 팝업 */
+            padding: 10px; width: 200px; z-index: 6000; pointer-events: none; 
+            top: 50% !important; left: 50% !important; transform: translate(-50%, -50%);
         }
         #tt-title { color: #00ffcc; margin: 0 0 5px 0; border-bottom: 1px solid #333; padding-bottom: 3px; }
         #tt-desc { color: #ccc; font-size: 0.85em; line-height: 1.4; margin: 0; }
@@ -205,7 +214,7 @@
             100% { width: 150vw; height: 150vw; opacity: 0; top: 100%; }
         }
 
-        /* 미디어 쿼리: 모바일 레이아웃 조정 */
+        /* 미디어 쿼리: 태블릿/PC */
         @media (min-width: 768px) {
             .title-logo { font-size: 4em; }
             #center-area { height: 140px; max-height: none; }
@@ -245,29 +254,74 @@
     </div>
 </div>
 
-<div id="rule-modal">
-    <div class="rule-content">
-        <h2>📜 BATTLELICA 규칙서</h2>
+<div id="rule-screen">
+    <div class="rule-header">
+        <div class="rule-title">GUIDE BOOK</div>
+        <button class="close-rule-btn" onclick="closeRules()">X 닫기</button>
+    </div>
+    <div class="rule-body">
+        <div class="rule-section">
+            <h3>1. 게임 컨셉</h3>
+            <p><strong>일렉타(Elegtar)</strong>들이 자신의 신체(기타)를 이펙터에 연결하여 싸우는 1:1 카드 배틀입니다.</p>
+            <p>페달보드(필드)에 이펙터를 장착하고, <strong>튜너(주사위)</strong>를 조율하여 최고의 사운드로 상대를 격파하세요.</p>
+        </div>
+
+        <div class="rule-section">
+            <h3>🎛️ 2. 튜너 (Tuner) 상세 매뉴얼</h3>
+            <p>튜너는 3개의 주사위로 구성되며, 각각 기타의 줄(String)을 상징합니다. 덱 스타일에 따라 판정 기준이 다릅니다.</p>
+            
+            <table class="tuner-table">
+                <thead>
+                    <tr>
+                        <th>주사위</th>
+                        <th>설명 (역할)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="d6-col"><strong>1d6</strong></td>
+                        <td><strong>고음 (High String):</strong> 섬세한 조율. 보너스는 작지만 성공하기 쉽거나, 실패 시 리스크가 큽니다.</td>
+                    </tr>
+                    <tr>
+                        <td class="d10-col"><strong>1d10</strong></td>
+                        <td><strong>중음 (Mid String):</strong> 탄탄한 허리. 적절한 확률로 준수한 공격력을 줍니다.</td>
+                    </tr>
+                    <tr>
+                        <td class="d20-col"><strong>1d20</strong></td>
+                        <td><strong>저음 (Low String):</strong> 묵직한 베이스. 성공 확률은 낮지만 한 방이 강력합니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>🟦 Standard Tuning (얼터너티브)</h4>
+            <p>안정적인 정석 튜닝입니다. 실패해도 불이익이 없습니다.</p>
+            <ul style="list-style: none; padding: 0;">
+                <li>🔴 <strong>1d6:</strong> 4 이상 → <span style="color:#00ffcc">공격력 +1</span></li>
+                <li>🔵 <strong>1d10:</strong> 6 이상 → <span style="color:#00ffcc">공격력 +2</span></li>
+                <li>🟡 <strong>1d20:</strong> 15 이상 → <span style="color:#00ffcc">공격력 +5</span></li>
+            </ul>
+
+            <h4>🟥 Drop-C Tuning (헤비 메탈)</h4>
+            <p>줄을 느슨하게 푼 변칙 튜닝입니다. <strong>실패 시 데미지(버징)</strong>를 입습니다.</p>
+            <ul style="list-style: none; padding: 0;">
+                <li>🔴 <strong>1d6:</strong> <span style="color:#ff3333">1~3 나오면 자해 3 데미지!</span> / 4 이상은 <span style="color:#ff0055">공격력 +3</span></li>
+                <li>🔵 <strong>1d10:</strong> 7 이상 → <span style="color:#ff0055">공격력 +4</span></li>
+                <li>🟡 <strong>1d20:</strong> 18 이상 → <span style="color:#ff0055">공격력 +10</span></li>
+            </ul>
+        </div>
+
+        <div class="rule-section">
+            <h3>3. 턴 진행 순서</h3>
+            <p><span class="highlight">1단계: 시작</span> 에너지+1 획득, 카드 1장 드로우.</p>
+            <p><span class="highlight">2단계: 메인 (세팅)</span> 카드를 사용하여 이펙터를 장착하거나 즉시 효과를 씁니다.</p>
+            <p><span class="highlight" style="color:#ffeb3b">3단계: 튜너 (조율)</span> [튜너] 버튼을 눌러 주사위를 굴립니다. <br>※ <strong>주의:</strong> 튜너를 굴린 후에는 카드를 사용할 수 없습니다!</p>
+            <p><span class="highlight">4단계: 배틀 (공격)</span> 최종 공격력으로 상대를 공격합니다.</p>
+            <p><span class="highlight">5단계: 종료</span> 이펙터 수명이 1 줄어듭니다.</p>
+        </div>
         
-        <h3>1. 승리 조건</h3>
-        <p>- 상대방의 체력(HP)을 0으로 만들면 승리합니다.</p>
-        <p>- 또는 상대방의 덱이 모두 소진되어 드로우할 수 없으면 승리합니다.</p>
-
-        <h3>2. 덱 특징</h3>
-        <p><strong>🟦 얼터너티브:</strong> 공격/방어/회복의 밸런스형. 안정적인 스탠다드 튜닝을 사용합니다.</p>
-        <p><strong>🟥 헤비 메탈:</strong> 강력한 공격력과 자해(Self-Harm) 리스크. 불안정한 Drop-C 튜닝을 사용합니다.</p>
-
-        <h3>3. 턴 진행 순서</h3>
-        <p>① <strong>시작:</strong> 에너지 1 획득 + 카드 1장 드로우.</p>
-        <p>② <strong>카드 사용:</strong> 에너지를 소모해 패에서 카드를 냅니다. (이펙터는 필드 장착, 즉발은 즉시 사용)</p>
-        <p>③ <strong>튜너(주사위):</strong> 턴당 1회 튜너를 굴려 추가 공격력이나 자해 효과를 얻습니다. <span style="color:#ff3333">※ 튜너를 굴린 후에는 카드를 사용할 수 없습니다!</span></p>
-        <p>④ <strong>공격:</strong> 최종 공격력으로 상대를 공격하고 턴을 종료합니다.</p>
-
-        <h3>4. 카드 종류</h3>
-        <p><strong>이펙터(색깔):</strong> 필드에 2턴간 유지되며 지속 효과를 줍니다. (최대 3개 장착)</p>
-        <p><strong>즉발(회색/노랑):</strong> 사용 즉시 효과를 발휘하고 사라집니다.</p>
-        
-        <button class="close-rule" onclick="closeRules()">닫기</button>
+        <div style="text-align: center; margin-top: 30px; color: #666;">
+            - BATTLELICA System v1.1 -
+        </div>
     </div>
 </div>
 
@@ -338,8 +392,8 @@
 
 <script>
     // --- 룰북 UI 함수 ---
-    function openRules() { document.getElementById('rule-modal').style.display = 'flex'; }
-    function closeRules() { document.getElementById('rule-modal').style.display = 'none'; }
+    function openRules() { document.getElementById('rule-screen').style.display = 'flex'; }
+    function closeRules() { document.getElementById('rule-screen').style.display = 'none'; }
 
     // [덱 데이터]
     const DECKS = {
