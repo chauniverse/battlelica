@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>배틀기타: FINAL FIXED</title>
+    <title>BATTLELICA: FINAL</title>
     <style>
         /* --- 공통 스타일 --- */
         body { background-color: #050505; color: #e0e0e0; font-family: 'Courier New', monospace; margin: 0; height: 100vh; overflow: hidden; user-select: none; }
@@ -13,7 +13,7 @@
             background: #000; z-index: 999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .title-logo { font-size: 3.5em; font-weight: bold; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; margin-bottom: 40px; letter-spacing: 5px; }
+        .title-logo { font-size: 4em; font-weight: bold; color: #ff0055; text-shadow: 0 0 20px #ff0055, 2px 2px 0px #00ffcc; margin-bottom: 40px; letter-spacing: 8px; font-style: italic; }
         
         .mode-select { display: flex; gap: 20px; margin-bottom: 30px; }
         .mode-btn {
@@ -35,36 +35,23 @@
         #btn-start-game.visible { opacity: 1; pointer-events: auto; }
         #btn-start-game:hover { transform: scale(1.05); background: #ff3377; }
 
-        /* --- 룰렛 오버레이 --- */
-        #roulette-overlay {
+        /* --- 오버레이 --- */
+        #roulette-overlay, #gameover-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000;
             display: none; flex-direction: column; align-items: center; justify-content: center;
         }
-        .roulette-box {
-            font-size: 3em; font-weight: bold; padding: 20px 40px; border: 4px solid #fff; color: #fff;
-            background: #000; min-width: 300px; text-align: center;
-        }
-        .roulette-p1 { color: #00ffcc; border-color: #00ffcc; text-shadow: 0 0 20px #00ffcc; }
-        .roulette-p2 { color: #00ccff; border-color: #00ccff; text-shadow: 0 0 20px #00ccff; }
-
-        /* --- 게임 오버 오버레이 --- */
-        #gameover-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 3000;
-            display: none; flex-direction: column; align-items: center; justify-content: center;
-        }
+        .roulette-box { font-size: 3em; font-weight: bold; padding: 20px 40px; border: 4px solid #fff; color: #fff; background: #000; min-width: 300px; text-align: center; }
         .winner-text { font-size: 4em; font-weight: bold; color: #ffeb3b; text-shadow: 0 0 30px #ffeb3b; margin-bottom: 20px; }
-        #btn-restart {
-            font-size: 1.5em; padding: 15px 40px; background: #fff; color: #000; border: none; cursor: pointer;
-        }
+        #btn-restart { font-size: 1.5em; padding: 15px 40px; background: #fff; color: #000; border: none; cursor: pointer; }
 
         /* --- 게임 화면 --- */
-        #game-container { display: none; width: 100%; height: 100%; flex-direction: column; }
-        .player-area { flex: 1; padding: 10px; transition: all 0.5s ease; display: flex; flex-direction: column; border-bottom: 1px solid #333; position: relative; }
+        #game-container { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; overflow: hidden; }
+        .player-area { flex: 1; padding: 10px; transition: all 0.5s ease; display: flex; flex-direction: column; border-bottom: 1px solid #333; position: relative; z-index: 10; }
         .active-turn { background-color: #1a1a1a; box-shadow: inset 0 0 30px rgba(0, 255, 204, 0.05); }
         .inactive-turn { background-color: #000; opacity: 0.5; pointer-events: none; filter: grayscale(80%); }
 
         /* 중앙 정보창 */
-        #center-area { height: 140px; background: #080808; border-top: 1px solid #333; border-bottom: 1px solid #333; display: flex; }
+        #center-area { height: 140px; background: #080808; border-top: 1px solid #333; border-bottom: 1px solid #333; display: flex; z-index: 20; }
         #game-log { flex: 1; overflow-y: auto; padding: 10px; font-size: 0.85em; color: #aaa; border-right: 1px solid #333; line-height: 1.4; }
         #tuner-guide { width: 180px; padding: 10px; font-size: 0.75em; color: #888; background: #0e0e0e; display: flex; flex-direction: column; justify-content: center; }
         .guide-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
@@ -80,7 +67,6 @@
         }
         .card:hover { transform: translateY(-15px) scale(1.1); z-index: 100; border-color: #fff; }
         .card.locked { filter: grayscale(100%); opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-
         .card-name { font-weight: bold; color: #fff; text-align: center; line-height: 1.2; margin-top: 5px;}
         .card-cost { position: absolute; top: 3px; right: 5px; color: #ffeb3b; font-weight: bold; font-size: 1.1em; }
         
@@ -95,8 +81,21 @@
         .status-row { display: flex; justify-content: space-between; align-items: center; padding: 0 10px; }
         .hp-text { font-size: 1.5em; font-weight: bold; color: #ff0055; }
         .energy-text { font-size: 1.2em; font-weight: bold; color: #ffeb3b; }
-        .control-row { display: flex; justify-content: center; gap: 10px; margin: 5px 0; }
-        .dice-display { background: #000; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; font-weight: bold; min-width: 100px; text-align: center; display: flex; gap: 10px; justify-content: center; }
+        .control-row { display: flex; justify-content: center; gap: 10px; margin: 5px 0; align-items: flex-start; }
+        
+        .dice-container { display: flex; flex-direction: column; align-items: center; }
+        .dice-display { background: #000; border: 1px solid #333; padding: 5px 10px; border-radius: 4px; font-weight: bold; min-width: 120px; text-align: center; display: flex; gap: 15px; justify-content: center; }
+        
+        /* 튜너 조작 UI (너지용) */
+        .tuner-mod-ui { display: flex; gap: 15px; margin-top: 5px; justify-content: center; }
+        .mod-btn { 
+            background: #222; border: 1px solid #00ccff; color: #00ccff; font-size: 0.7em; padding: 2px 5px; cursor: pointer; width: 30px;
+        }
+        .mod-btn:hover { background: #00ccff; color: #000; }
+        .confirm-btn {
+            margin-top: 5px; background: #00ff66; color: #000; border: none; font-weight: bold; cursor: pointer; padding: 2px 10px; font-size: 0.8em;
+        }
+
         button { background: #333; color: #fff; border: 1px solid #555; padding: 8px 16px; cursor: pointer; font-family: inherit; }
         button:hover { border-color: #00ffcc; color: #00ffcc; }
         button:disabled { opacity: 0.3; cursor: not-allowed; border-color: #333; color: #555; }
@@ -105,12 +104,45 @@
         #tooltip { position: fixed; display: none; background: rgba(0,0,0,0.95); border: 1px solid #00ffcc; padding: 10px; width: 220px; z-index: 2000; pointer-events: none; }
         #tt-title { color: #00ffcc; margin: 0 0 5px 0; border-bottom: 1px solid #333; padding-bottom: 3px; }
         #tt-desc { color: #ccc; font-size: 0.85em; line-height: 1.4; margin: 0; }
+
+        /* 시각 효과 */
+        .float-text {
+            position: absolute; font-weight: bold; font-size: 2em; pointer-events: none; z-index: 1500;
+            text-shadow: 0 0 5px #000;
+            animation: floatUp 1s ease-out forwards;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.5); opacity: 0; }
+        }
+        .dmg-pos { color: #ff3333; } 
+        .dmg-neg { color: #cc33ff; } 
+        .heal-pos { color: #00ff66; }
+
+        .sound-wave {
+            position: absolute;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1200;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes ripple-up {
+            0% { width: 0; height: 0; opacity: 0.8; top: 80%; }
+            100% { width: 800px; height: 800px; opacity: 0; top: 20%; }
+        }
+        @keyframes ripple-down {
+            0% { width: 0; height: 0; opacity: 0.8; top: 20%; }
+            100% { width: 800px; height: 800px; opacity: 0; top: 80%; }
+        }
     </style>
 </head>
 <body>
 
 <div id="start-screen">
-    <div class="title-logo">🎸 BATTLE GUITAR</div>
+    <div class="title-logo">🎸 BATTLELICA</div>
     <div class="mode-select">
         <div class="mode-btn" id="mode-pvp" onclick="selectMode('pvp')">⚔️ PvP Mode</div>
         <div class="mode-btn" id="mode-ai" onclick="selectMode('ai')">🤖 vs AI Mode</div>
@@ -150,7 +182,15 @@
         <div class="hand-zone" id="p2-hand"></div>
         <div class="control-row">
             <button id="p2-btn-tuner" onclick="actions.rollTuner('p2')">🎲 튜너</button>
-            <div class="dice-display"><span id="p2-d6">-</span><span id="p2-d10">-</span><span id="p2-d20">-</span></div>
+            <div class="dice-container">
+                <div class="dice-display"><span id="p2-d6">-</span><span id="p2-d10">-</span><span id="p2-d20">-</span></div>
+                <div id="p2-mod-ui" class="tuner-mod-ui" style="visibility: hidden;">
+                    <button class="mod-btn" onclick="actions.modTuner('p2', 0)">-1</button>
+                    <button class="mod-btn" onclick="actions.modTuner('p2', 1)">-1</button>
+                    <button class="mod-btn" onclick="actions.modTuner('p2', 2)">-1</button>
+                </div>
+                <button id="p2-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p2')">확인</button>
+            </div>
             <button id="p2-btn-attack" onclick="actions.attack('p2')" disabled>⚔️ 공격</button>
         </div>
         <div class="field-zone" id="p2-field"></div>
@@ -165,7 +205,15 @@
         <div class="field-zone" id="p1-field"></div>
         <div class="control-row">
             <button id="p1-btn-tuner" onclick="actions.rollTuner('p1')">🎲 튜너</button>
-            <div class="dice-display"><span id="p1-d6">-</span><span id="p1-d10">-</span><span id="p1-d20">-</span></div>
+            <div class="dice-container">
+                <div class="dice-display"><span id="p1-d6">-</span><span id="p1-d10">-</span><span id="p1-d20">-</span></div>
+                <div id="p1-mod-ui" class="tuner-mod-ui" style="visibility: hidden;">
+                    <button class="mod-btn" onclick="actions.modTuner('p1', 0)">-1</button>
+                    <button class="mod-btn" onclick="actions.modTuner('p1', 1)">-1</button>
+                    <button class="mod-btn" onclick="actions.modTuner('p1', 2)">-1</button>
+                </div>
+                <button id="p1-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p1')">확인</button>
+            </div>
             <button id="p1-btn-attack" onclick="actions.attack('p1')" disabled>⚔️ 공격</button>
         </div>
         <div class="hand-zone" id="p1-hand"></div>
@@ -178,6 +226,7 @@
 </div>
 
 <script>
+    // [덱 데이터: '너지' 수정됨]
     const DECKS = {
         alt: [
             ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"[OD] 매턴 5 데미지."}),
@@ -188,14 +237,16 @@
             ...Array(1).fill({name:"킵캄", type:"eff_delay", cost:5, val:60, life:2, color:"#ffee00", desc:"[Delay] 1턴 대기 후 2턴째 60 폭발."}),
             ...Array(2).fill({name:"터틀", type:"eff_def", cost:1, val:5, life:2, color:"#00ccff", desc:"[Phaser] 매턴 방어 +5."}),
             ...Array(1).fill({name:"소프티", type:"eff_heal", cost:1, val:4, life:2, color:"#00ccff", desc:"[Chorus] 매턴 체력 4 회복."}),
-            ...Array(1).fill({name:"너지", type:"eff_def", cost:1, val:4, life:2, color:"#00ccff", desc:"[Comp] 매턴 방어 +4."}),
+            // 너지 수정: eff_nudge
+            ...Array(1).fill({name:"너지", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너 주사위값 -1 보정 가능."}),
             ...Array(1).fill({name:"플립", type:"eff_buff", cost:2, val:5, life:2, color:"#00ccff", desc:"[Oct] 매턴 공격보정 +5."}),
             ...Array(2).fill({name:"칠리", type:"inst_heal", cost:1, val:10, color:"#aaaaaa", desc:"즉시 체력 10 회복."}),
             ...Array(3).fill({name:"소형건전지", type:"inst_energy", cost:0, val:1, color:"#ffff00", desc:"에너지 +1"}),
             ...Array(2).fill({name:"중형건전지", type:"inst_energy", cost:2, val:3, color:"#ffff00", desc:"에너지 +3"}),
             ...Array(3).fill({name:"슬라이딩", type:"inst_draw", cost:1, val:1, color:"#aaaaaa", desc:"1장 드로우."}),
             ...Array(2).fill({name:"해머링", type:"inst_draw", cost:0, val:1, color:"#aaaaaa", desc:"덱 조작 (드로우로 구현)."}),
-            ...Array(2).fill({name:"너지(버프)", type:"eff_buff", cost:1, val:3, life:2, color:"#00ccff", desc:"[Comp] 매턴 공 +3."})
+            // 너지 수정
+            ...Array(2).fill({name:"너지(버프)", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너 주사위값 -1 보정 가능."})
         ],
         metal: [
             ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"매턴 5 데미지."}),
@@ -215,17 +266,39 @@
 
     let game = { mode: 'pvp', aiId: null };
     let animating = false;
+    let tempDice = { d6:0, d10:0, d20:0 }; // 튜너 조작용 임시 저장
+    let activeNudges = 0; // 남은 조작 횟수
 
-    // --- 시작 화면 로직 ---
+    // --- 시각 효과 ---
+    function showFloatingText(targetId, text, type) {
+        const area = document.getElementById(`${targetId}-area`);
+        const el = document.createElement('div');
+        el.className = `float-text ${type}`;
+        el.innerText = text;
+        el.style.left = '50%'; el.style.top = '50%'; el.style.transform = 'translate(-50%, -50%)';
+        area.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function showAttackWave(attackerId) {
+        const gameContainer = document.getElementById('game-container');
+        const wave = document.createElement('div');
+        wave.className = 'sound-wave';
+        wave.style.left = '50%';
+        if(attackerId === 'p1') wave.style.animation = 'ripple-up 0.6s ease-out forwards';
+        else wave.style.animation = 'ripple-down 0.6s ease-out forwards';
+        gameContainer.appendChild(wave);
+        setTimeout(() => wave.remove(), 600);
+    }
+
+    // --- 게임 로직 ---
     function selectMode(mode) {
         game.mode = mode;
         document.getElementById('mode-pvp').classList.remove('selected');
         document.getElementById('mode-ai').classList.remove('selected');
         document.getElementById(`mode-${mode}`).classList.add('selected');
-        
         document.getElementById('deck-setup').classList.add('visible');
         document.getElementById('btn-start-game').classList.add('visible');
-
         if(mode === 'ai') {
             document.getElementById('p1-label').innerText = "MY DECK";
             document.getElementById('p2-label').innerText = "AI DECK";
@@ -235,23 +308,17 @@
         }
     }
 
-    // 선공 룰렛
     function startRoulette() {
         document.getElementById('start-screen').style.display = 'none';
         const overlay = document.getElementById('roulette-overlay');
         const text = document.getElementById('roulette-text');
         overlay.style.display = 'flex';
-
-        let count = 0;
-        let speed = 50;
-        let currentP = 1;
-        
+        let count = 0, speed = 50, currentP = 1;
         const interval = setInterval(() => {
             currentP = currentP === 1 ? 2 : 1;
             text.innerText = game.mode === 'ai' ? (currentP===1 ? "YOU" : "AI") : `PLAYER ${currentP}`;
             text.className = `roulette-box roulette-p${currentP}`;
             count++;
-            
             if (count > 20) speed += 20; 
             if (count > 30) {
                 clearInterval(interval);
@@ -271,7 +338,6 @@
     function startGame(activePid) {
         const p1Type = document.getElementById('p1-deck-select').value;
         const p2Type = document.getElementById('p2-deck-select').value;
-        
         game.p1 = new Player('p1', p1Type);
         game.p2 = new Player('p2', p2Type);
         game.turn = 1;
@@ -279,28 +345,22 @@
         
         if (game.mode === 'ai') {
             game.aiId = 'p2';
-            // 버그 픽스: 이제 p1-name-display 엘리먼트가 존재하므로 에러 안 남
             document.getElementById('p1-name-display').innerText = "YOU"; 
             document.getElementById('p2-name-display').innerText = "AI";
         }
-
         document.getElementById('p1-deck-name').innerText = p1Type.toUpperCase();
         document.getElementById('p2-deck-name').innerText = p2Type.toUpperCase();
-
         log("=== BATTLE START ===");
-        log(`📢 선공: ${game.active === 'p1' ? (game.mode==='ai'?'YOU':'PLAYER 1') : (game.mode==='ai'?'AI':'PLAYER 2')}`);
-
-        // 후공 보너스
+        
         const second = activePid === 'p1' ? 'p2' : 'p1';
         setTimeout(() => {
             log(`🍀 후공 럭키배터리 체크...`);
             if(Math.random() < 0.5) {
                 game[second].energy += 1;
                 log("🎉 성공! 에너지 +1");
+                showFloatingText(second, "+1 ENERGY", "heal-pos");
             } else log("💨 실패.");
-            
-            game.p1.draw(5); 
-            game.p2.draw(5);
+            game.p1.draw(5); game.p2.draw(5);
             startTurn();
         }, 800);
     }
@@ -338,8 +398,14 @@
         document.getElementById(`${game.active}-d10`).innerText = "-";
         document.getElementById(`${game.active}-d20`).innerText = "-";
         
+        // 너지 UI 숨기기
+        document.getElementById('p1-mod-ui').style.visibility = 'hidden';
+        document.getElementById('p2-mod-ui').style.visibility = 'hidden';
+        document.getElementById('p1-mod-confirm').style.display = 'none';
+        document.getElementById('p2-mod-confirm').style.display = 'none';
+
         updateGuide(p.type);
-        log(`\n=== TURN ${game.turn} : ${game.active === 'p1' ? (game.mode==='ai'?'YOU':'P1') : (game.mode==='ai'?'AI':'P2')} ===`);
+        log(`\n=== TURN ${game.turn} : ${game.active.toUpperCase()} ===`);
         
         let heal = 0;
         p.field.forEach(item => {
@@ -352,35 +418,31 @@
         if(heal > 0) {
             p.hp = Math.min(150, p.hp + heal);
             log(`💚 필드 효과: 체력 +${heal}`);
+            showFloatingText(game.active, `+${heal}`, "heal-pos");
         }
-
         render();
-
-        if(game.mode === 'ai' && game.active === game.aiId) {
-            setTimeout(aiAction, 1000);
-        }
+        if(game.mode === 'ai' && game.active === game.aiId) setTimeout(aiAction, 1000);
     }
 
     function aiAction() {
         const ai = game.p2;
         const handIndices = ai.hand.map((_, i) => i);
-        
         for (let i of handIndices) {
             const c = ai.hand[i];
             if (!c) continue; 
             if(c.type.startsWith('eff_') && ai.field.length >= 3) continue;
-            
             if (c.cost <= ai.energy) {
                 actions.playCard(game.active, i);
                 setTimeout(aiAction, 800); 
                 return; 
             }
         }
-
         if (!ai.tunerRolled) {
             actions.rollTuner(game.active);
-            setTimeout(() => {
-                actions.attack(game.active);
+            setTimeout(() => { 
+                // AI는 너지 있으면 자동으로 최적화? (단순화: 일단 튜너 후 바로 공격)
+                if(activeNudges > 0) actions.confirmTuner(game.active); // 그냥 확인
+                setTimeout(() => actions.attack(game.active), 500); 
             }, 1500); 
         }
     }
@@ -393,52 +455,47 @@
 
             animating = true;
             document.getElementById(`${pid}-btn-tuner`).disabled = true;
-            
             p.tunerRolled = true; 
             render(); 
 
-            let bonus = 0; let self = 0;
             let count=0;
             const intv = setInterval(()=>{
                 document.getElementById(`${pid}-d6`).innerText = r(6);
                 document.getElementById(`${pid}-d10`).innerText = r(10);
                 document.getElementById(`${pid}-d20`).innerText = r(20);
                 count++;
-                if(count>10) {
-                    clearInterval(intv);
-                    finalize();
-                }
+                if(count>10) { clearInterval(intv); startNudgePhase(pid); }
             }, 50);
+        },
 
-            function finalize() {
-                const d6 = r(6), d10 = r(10), d20 = r(20);
-                document.getElementById(`${pid}-d6`).innerText = d6;
-                document.getElementById(`${pid}-d10`).innerText = d10;
-                document.getElementById(`${pid}-d20`).innerText = d20;
-                
-                if(p.type === 'alt') {
-                    if(d6>=4) bonus+=1; if(d10>=6) bonus+=2; if(d20>=15) bonus+=5;
-                } else {
-                    if(d6<=3) { self+=3; document.getElementById(`${pid}-d6`).style.color='red'; }
-                    else bonus+=3;
-                    if(d10>=7) bonus+=4; if(d20>=18) bonus+=10;
-                }
-                
-                p.turnStats.atk += bonus;
-                if(self>0) { p.hp -= self; log(`🩸 튜너 자해 -${self}`); }
-                log(`🎲 튜너 결과: 공격력 +${bonus}`);
-                
-                if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1');
-                animating = false;
-                render();
+        modTuner: (pid, diceIdx) => {
+            if(activeNudges <= 0) return alert("보정 횟수 소진!");
+            const keys = ['d6','d10','d20'];
+            const key = keys[diceIdx];
+            
+            if(tempDice[key] > 1) {
+                tempDice[key]--;
+                activeNudges--;
+                document.getElementById(`${pid}-${key}`).innerText = tempDice[key];
+                log(`🔧 [너지] ${key.toUpperCase()} -1 보정 (남은 횟수: ${activeNudges})`);
+                if(activeNudges <= 0) document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden';
             }
+        },
+
+        confirmTuner: (pid) => {
+            document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden';
+            document.getElementById(`${pid}-mod-confirm`).style.display = 'none';
+            finalizeTuner(pid);
         },
         
         attack: (pid) => {
             if(game.active !== pid || animating) return;
             const p = game[pid];
             const opp = game[pid==='p1'?'p2':'p1'];
+            const oppId = pid==='p1'?'p2':'p1';
             
+            showAttackWave(pid);
+
             let totalDmg = p.turnStats.atk; 
             let pierceDmg = 0;
             let selfDmg = 0;
@@ -447,7 +504,6 @@
                 const c = item.card;
                 if(c.type === 'eff_delay') {
                     if(item.life === 1) { log(`💥 킵캄 폭발!`); totalDmg += c.val; }
-                    else log(`⏳ 킵캄 충전 중...`);
                 }
                 else if(c.type === 'eff_atk') totalDmg += c.val;
                 else if(c.type === 'eff_self') { totalDmg += c.val; selfDmg += c.self; }
@@ -458,7 +514,11 @@
                 }
             });
             
-            if(selfDmg > 0) { p.hp -= selfDmg; log(`🩸 이펙터 과부하 -${selfDmg}`); }
+            if(selfDmg > 0) { 
+                p.hp -= selfDmg; 
+                log(`🩸 이펙터 과부하 -${selfDmg}`);
+                showFloatingText(pid, `-${selfDmg}`, "dmg-neg");
+            }
             
             let oppDef = 0;
             let oppGate = 0;
@@ -468,25 +528,30 @@
             });
             
             if(pierceDmg > 0) {
-                if(pierceDmg > oppGate) { opp.hp -= pierceDmg; log(`🗡️ 관통 피해 ${pierceDmg}`); }
-                else log(`🛡️ 노이즈게이트가 관통 막음`);
+                if(pierceDmg > oppGate) { 
+                    opp.hp -= pierceDmg; 
+                    log(`🗡️ 관통 피해 ${pierceDmg}`); 
+                    showFloatingText(oppId, `+${pierceDmg}`, "dmg-pos");
+                } else log(`🛡️ 노이즈게이트가 관통 막음`);
             }
             
             let final = Math.max(0, totalDmg - oppDef);
             if(final <= oppGate && final > 0) { final = 0; log(`🛡️ 노이즈게이트 방어!`); }
             
-            if(final > 0) { opp.hp -= final; log(`⚔️ 일반 피해 ${final} (방어 ${oppDef})`); }
-            else if(totalDmg > 0) log(`🛡️ 방어됨`);
+            if(final > 0) { 
+                opp.hp -= final; 
+                log(`⚔️ 일반 피해 ${final}`); 
+                showFloatingText(oppId, `+${final}`, "dmg-pos");
+            } else if(totalDmg > 0) log(`🛡️ 방어됨`);
             
             if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1');
             else if(opp.hp<=0) gameOver(pid);
-            else endTurn(pid);
+            else setTimeout(() => endTurn(pid), 600);
         },
         
         playCard: (pid, idx) => {
             if(game.active !== pid || animating) return;
             const p = game[pid];
-            
             if(p.tunerRolled) return alert("튜너를 굴린 후에는 카드를 사용할 수 없습니다!");
 
             const c = p.hand[idx];
@@ -494,17 +559,21 @@
                 if(game.mode!=='ai' || game.active!=='p2') alert("에너지 부족");
                 return;
             }
-            
             p.energy -= c.cost;
             p.hand.splice(idx, 1);
             hideTooltip();
-            
             log(`▶ [${c.name}] 사용`);
             
             if(c.type.startsWith('inst_')) {
-                if(c.type==='inst_heal') p.hp = Math.min(150, p.hp+c.val);
+                if(c.type==='inst_heal') {
+                    p.hp = Math.min(150, p.hp+c.val);
+                    showFloatingText(pid, `+${c.val}`, "heal-pos");
+                }
                 if(c.type==='inst_energy') p.energy += c.val;
-                if(c.type==='inst_eng_harm') { p.energy+=c.val; p.hp-=c.self; }
+                if(c.type==='inst_eng_harm') { 
+                    p.energy+=c.val; p.hp-=c.self; 
+                    showFloatingText(pid, `-${c.self}`, "dmg-neg");
+                }
                 if(c.type==='inst_draw') p.draw(c.val);
                 if(c.type==='inst_buff') p.turnStats.atk += c.val;
                 if(c.type==='inst_thrash') {
@@ -520,13 +589,67 @@
                 if(c.type==='eff_def') p.turnStats.def += c.val;
                 if(c.type==='eff_gate') p.turnStats.gate = Math.max(p.turnStats.gate, c.val);
                 if(c.type==='eff_buff') p.turnStats.atk += c.val;
-                if(c.type==='eff_heal') p.hp = Math.min(150, p.hp+c.val);
-                
+                if(c.type==='eff_heal') {
+                    p.hp = Math.min(150, p.hp+c.val);
+                    showFloatingText(pid, `+${c.val}`, "heal-pos");
+                }
                 p.field.push({ card: c, life: 2 });
             }
             render();
         }
     };
+
+    function startNudgePhase(pid) {
+        const p = game[pid];
+        tempDice = { d6: r(6), d10: r(10), d20: r(20) };
+        document.getElementById(`${pid}-d6`).innerText = tempDice.d6;
+        document.getElementById(`${pid}-d10`).innerText = tempDice.d10;
+        document.getElementById(`${pid}-d20`).innerText = tempDice.d20;
+
+        // 너지(nudge) 체크
+        activeNudges = 0;
+        p.field.forEach(item => { if(item.card.type === 'eff_nudge') activeNudges++; });
+
+        if(activeNudges > 0) {
+            log(`🔧 너지 발동 가능! (${activeNudges}회)`);
+            if(game.mode === 'ai' && pid === 'p2') {
+                // AI는 일단 스킵 (확인만)
+                setTimeout(() => actions.confirmTuner(pid), 500);
+            } else {
+                document.getElementById(`${pid}-mod-ui`).style.visibility = 'visible';
+                document.getElementById(`${pid}-mod-confirm`).style.display = 'inline-block';
+            }
+        } else {
+            finalizeTuner(pid);
+        }
+    }
+
+    function finalizeTuner(pid) {
+        const p = game[pid];
+        let bonus = 0; let self = 0;
+        const d6 = tempDice.d6; const d10 = tempDice.d10; const d20 = tempDice.d20;
+
+        if(p.type === 'alt') {
+            if(d6>=4) bonus+=1; if(d10>=6) bonus+=2; if(d20>=15) bonus+=5;
+        } else {
+            if(d6<=3) { self+=3; document.getElementById(`${pid}-d6`).style.color='red'; }
+            else bonus+=3;
+            if(d10>=7) bonus+=4; if(d20>=18) bonus+=10;
+        }
+        
+        p.turnStats.atk += bonus;
+        if(self>0) { 
+            p.hp -= self; 
+            log(`🩸 튜너 자해 -${self}`); 
+            showFloatingText(pid, `-${self}`, "dmg-neg");
+        }
+        
+        log(`🎲 튜너 확정: 공격력 +${bonus}`);
+        if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1');
+        
+        animating = false;
+        render();
+    }
 
     function endTurn(pid) {
         const p = game[pid];
@@ -535,17 +658,13 @@
             if(item.life <= 0) { p.trash.push(item.card); return false; }
             return true;
         });
-        
         game.turn++;
         game.active = pid==='p1'?'p2':'p1';
         startTurn();
     }
 
     function gameOver(winnerId) {
-        const name = (game.mode==='ai' && winnerId==='p1') ? "YOU" : 
-                     (game.mode==='ai' && winnerId==='p2') ? "AI" :
-                     (winnerId==='p1' ? "PLAYER 1" : "PLAYER 2");
-                     
+        const name = (game.mode==='ai' && winnerId==='p1') ? "YOU" : (game.mode==='ai' && winnerId==='p2') ? "AI" : (winnerId==='p1' ? "PLAYER 1" : "PLAYER 2");
         document.getElementById('winner-text').innerText = `${name} WINS!`;
         document.getElementById('gameover-overlay').style.display = 'flex';
     }
@@ -566,10 +685,8 @@
         const p = game[pid];
         document.getElementById(`${pid}-hp`).innerText = p.hp;
         document.getElementById(`${pid}-energy`).innerText = p.energy;
-        
         const isMyTurn = game.active === pid;
         const isHumanControl = (game.mode === 'pvp') || (game.mode === 'ai' && pid === 'p1');
-
         document.getElementById(`${pid}-btn-tuner`).disabled = !isMyTurn || p.tunerRolled || !isHumanControl;
         document.getElementById(`${pid}-btn-attack`).disabled = !isMyTurn || !p.tunerRolled || !isHumanControl;
         
@@ -577,14 +694,10 @@
         p.hand.forEach((c, i) => {
             const el = document.createElement('div'); el.className = 'card';
             if(p.tunerRolled) el.classList.add('locked');
-            
             el.style.borderColor = c.color;
             el.innerHTML = `<div class="card-name">${c.name}</div><div style="font-size:0.6em;text-align:center">${c.type.split('_')[1]||'skill'}</div><div class="card-cost">⚡${c.cost}</div>`;
             el.onmouseenter = e => showTooltip(e, c); el.onmousemove = moveTooltip; el.onmouseleave = hideTooltip;
-            
-            if(isMyTurn && !p.tunerRolled && isHumanControl) {
-                el.onclick = () => actions.playCard(pid, i);
-            }
+            if(isMyTurn && !p.tunerRolled && isHumanControl) { el.onclick = () => actions.playCard(pid, i); }
             h.appendChild(el);
         });
         
@@ -597,7 +710,6 @@
     }
 
     function r(n) { return Math.ceil(Math.random()*n); }
-
     const tooltip = document.getElementById('tooltip');
     function showTooltip(e, c) {
         document.getElementById('tt-title').innerText = c.name;
