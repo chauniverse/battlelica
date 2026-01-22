@@ -3,18 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BATTLELICA: TUNER UPDATE</title>
+    <title>BATTLELICA: PC OPTIMIZED</title>
     <style>
         /* --- 공통 스타일 --- */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
         body { 
-            background-color: #050505; color: #e0e0e0; 
+            background-color: #111; /* PC 배경색 (어두운 회색) */
+            color: #e0e0e0; 
             font-family: 'Courier New', monospace; margin: 0; 
             height: 100vh; height: 100dvh; 
             overflow: hidden; user-select: none; 
-            display: flex; flex-direction: column;
+            /* PC 화면 중앙 정렬을 위한 Flex 설정 */
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
         }
         
+        /* 앱 프레임: 모바일 화면 비율을 유지하는 컨테이너 */
+        #app-frame {
+            width: 100%;
+            height: 100%;
+            background-color: #050505; /* 게임 내부 배경색 */
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8); /* 그림자 효과 */
+        }
+
+        /* --- PC 화면 대응 (미디어 쿼리) --- */
+        @media (min-width: 768px) {
+            #app-frame {
+                height: 100vh; /* 높이는 화면 가득 */
+                width: auto;   /* 너비는 비율에 맞춤 */
+                aspect-ratio: 9/16; /* 9:16 세로 비율 고정 */
+                min-width: 360px; /* 최소 너비 보장 */
+                border-left: 2px solid #333;
+                border-right: 2px solid #333;
+            }
+            
+            /* PC에서는 폰트와 요소를 조금 더 키워서 가독성 확보 */
+            .card { width: 80px; height: 110px; font-size: 0.75em; }
+            .field-card { width: 60px; height: 80px; }
+            .hand-zone { height: 120px; }
+            .dice-display { min-width: 130px; font-size: 1.1em; }
+            button { font-size: 1.1em; padding: 10px 20px; }
+        }
+
+        /* 스크롤바 커스텀 */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: #111; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
@@ -60,13 +97,33 @@
         }
         #btn-start-game.visible { opacity: 1; pointer-events: auto; }
         
-        #btn-rules {
+        .secondary-btn {
             font-size: 1em; padding: 12px; background: #222; color: #00ffcc; border: 1px solid #00ffcc; cursor: pointer; width: 100%;
             transition: 0.3s;
         }
-        #btn-rules:hover { background: #00ffcc; color: #000; }
+        .secondary-btn:hover { background: #00ffcc; color: #000; }
 
-        /* --- [NEW] 상세 룰북 화면 (전체화면) --- */
+        /* --- [NEW] 카드 도감 화면 --- */
+        #collection-screen {
+            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a0a0a; z-index: 5000; flex-direction: column;
+        }
+        .collection-header {
+            padding: 15px; background: #111; border-bottom: 2px solid #00ffcc;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .collection-body {
+            flex: 1; overflow-y: auto; padding: 20px; 
+        }
+        .deck-section { margin-bottom: 40px; }
+        .deck-title { color: #fff; border-left: 5px solid #ff0055; padding-left: 15px; margin-bottom: 20px; font-size: 1.5em; }
+        .card-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 15px; justify-items: center;
+        }
+        /* 도감에서는 카드를 좀 더 크게 보여줌 */
+        .collection-card-wrapper { transform: scale(1.2); margin: 10px; }
+
+        /* --- 룰북 화면 --- */
         #rule-screen {
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: #0a0a0a; z-index: 5000; flex-direction: column;
@@ -74,31 +131,19 @@
         .rule-header {
             padding: 15px; background: #111; border-bottom: 2px solid #ff0055;
             display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
-        .rule-title { font-size: 1.2em; font-weight: bold; color: #ff0055; letter-spacing: 2px; }
-        .rule-body {
-            flex: 1; overflow-y: auto; padding: 20px; font-size: 0.9em; color: #ccc; line-height: 1.6;
-        }
+        .rule-body { flex: 1; overflow-y: auto; padding: 20px; font-size: 0.9em; color: #ccc; line-height: 1.6; }
         .rule-section { margin-bottom: 30px; border-bottom: 1px dashed #333; padding-bottom: 20px; }
         .rule-section h3 { color: #00ffcc; margin-top: 0; border-left: 4px solid #00ffcc; padding-left: 10px; }
         .rule-section h4 { color: #ffeb3b; margin: 15px 0 5px 0; }
         .rule-section ul { padding-left: 20px; margin: 5px 0; }
-        .rule-section li { margin-bottom: 5px; }
-        .highlight { color: #fff; font-weight: bold; }
-        
-        /* 튜너 테이블 스타일 */
         .tuner-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9em; }
         .tuner-table th, .tuner-table td { border: 1px solid #444; padding: 8px; text-align: center; }
         .tuner-table th { background: #222; color: #00ffcc; }
-        .dice-icon { font-weight: bold; display: inline-block; width: 20px; }
-        .d6-col { color: #ff5555; }
-        .d10-col { color: #55aaff; }
-        .d20-col { color: #ffee00; }
-
-        .close-rule-btn {
-            background: #ff0055; color: #fff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 4px;
-        }
+        .d6-col { color: #ff5555; } .d10-col { color: #55aaff; } .d20-col { color: #ffee00; }
+        .highlight { color: #fff; font-weight: bold; }
+        .close-btn { background: #333; color: #fff; border: 1px solid #fff; padding: 5px 15px; cursor: pointer; }
+        .close-rule-btn { background: #ff0055; color: #fff; border: none; padding: 8px 15px; font-weight: bold; cursor: pointer; border-radius: 4px; }
 
         /* --- 오버레이 (룰렛, 게임오버) --- */
         #roulette-overlay, #gameover-overlay {
@@ -111,54 +156,60 @@
 
         /* --- 게임 화면 --- */
         #game-container { display: none; width: 100%; height: 100%; flex-direction: column; position: relative; }
-        
-        .player-area { 
-            flex: 1; padding: 5px; display: flex; flex-direction: column; 
-            border-bottom: 1px solid #333; position: relative; z-index: 10; 
-            justify-content: space-between;
-        }
+        .player-area { flex: 1; padding: 5px; display: flex; flex-direction: column; border-bottom: 1px solid #333; position: relative; z-index: 10; justify-content: space-between; }
         .active-turn { background-color: #1a1a1a; box-shadow: inset 0 0 30px rgba(0, 255, 204, 0.05); }
         .inactive-turn { background-color: #000; opacity: 0.5; pointer-events: none; filter: grayscale(80%); }
-
-        /* 중앙 정보창 */
-        #center-area { 
-            height: 15vh; max-height: 100px; background: #080808; 
-            border-top: 1px solid #333; border-bottom: 1px solid #333; 
-            display: flex; z-index: 20; 
-        }
+        #center-area { height: 15vh; max-height: 100px; background: #080808; border-top: 1px solid #333; border-bottom: 1px solid #333; display: flex; z-index: 20; }
         #game-log { flex: 1; overflow-y: auto; padding: 5px; font-size: 0.7em; color: #aaa; border-right: 1px solid #333; line-height: 1.3; }
         #tuner-guide { width: 120px; padding: 5px; font-size: 0.6em; color: #888; background: #0e0e0e; display: flex; flex-direction: column; justify-content: center; }
-        
-        /* 카드 및 필드 */
         .hand-zone { height: 90px; display: flex; justify-content: center; gap: 5px; align-items: flex-end; margin-bottom: 5px; }
-        .field-zone { 
-            flex: 1; border: 1px dashed #333; margin: 2px 0; display: flex; 
-            justify-content: center; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); 
-            min-height: 70px;
-        }
+        .field-zone { flex: 1; border: 1px dashed #333; margin: 2px 0; display: flex; justify-content: center; align-items: center; gap: 10px; background: rgba(255,255,255,0.02); min-height: 70px; }
         
+        /* --- [CORE] 카드 디자인 스타일 --- */
         .card {
-            width: 60px; height: 85px; background: #222; border: 1px solid #555; border-radius: 4px;
-            padding: 3px; font-size: 0.6em; cursor: pointer; position: relative; display: flex; flex-direction: column; justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5); transition: transform 0.2s;
+            width: 70px; height: 100px; /* 비율 조정 */
+            background: #222; border: 2px solid #555; border-radius: 6px;
+            padding: 2px; font-size: 0.6em; cursor: pointer; position: relative; 
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.6); transition: transform 0.2s;
+            overflow: hidden;
         }
         .card:active { transform: scale(0.95); } 
         .card.locked { filter: grayscale(100%); opacity: 0.5; pointer-events: none; }
-        .card-name { font-weight: bold; color: #fff; text-align: center; line-height: 1.1; margin-top: 2px; word-break: break-all;}
-        .card-cost { position: absolute; top: 2px; right: 3px; color: #ffeb3b; font-weight: bold; font-size: 1.2em; }
         
+        /* 기본 카드 (이미지 없을 때) */
+        .card-name { font-weight: bold; color: #fff; text-align: center; line-height: 1.1; margin-top: 2px; word-break: break-all; z-index: 2;}
+        .card-cost { position: absolute; top: 2px; right: 3px; color: #ffeb3b; font-weight: bold; font-size: 1.2em; z-index: 2; text-shadow: 1px 1px 0 #000;}
+        .card-type { text-align: center; color: #aaa; font-size: 0.8em; margin-bottom: 2px; z-index: 2;}
+
+        /* [NEW] 이미지 적용 카드 스타일 */
+        .card.full-art {
+            background-color: transparent; border: none; box-shadow: none;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+        }
+        /* 이미지 카드일 때 텍스트 숨김 (이미지 안에 포함됨을 가정, 필요시 주석 해제하여 표시 가능) */
+        .card.full-art .card-name { display: none; }
+        .card.full-art .card-cost { display: none; }
+        .card.full-art .card-desc { display: none; }
+        .card.full-art .card-type { display: none; }
+
+        /* 필드 카드 */
         .field-card {
             width: 50px; height: 70px; background: #1a1a1a; border: 2px solid #555; border-radius: 4px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             box-shadow: 0 0 5px rgba(0,0,0,0.5); position: relative;
         }
-        .life-indicator { position: absolute; bottom: -15px; color: #00ffcc; font-size: 0.7em; }
+        /* 이미지 필드 카드 */
+        .field-card.full-art {
+            background: transparent; border: none; 
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+        }
+        .life-indicator { position: absolute; bottom: -15px; color: #00ffcc; font-size: 0.7em; white-space: nowrap; }
 
-        /* 상태창 & 컨트롤 */
+        /* 기타 UI 요소들 */
         .status-row { display: flex; justify-content: space-between; align-items: center; padding: 0 5px; font-size: 0.8em;}
         .hp-text { font-size: 1.3em; font-weight: bold; color: #ff0055; }
         .energy-text { font-size: 1.1em; font-weight: bold; color: #ffeb3b; }
-        
         .control-row { display: flex; justify-content: center; gap: 5px; margin: 2px 0; align-items: flex-start; }
         .dice-container { display: flex; flex-direction: column; align-items: center; }
         .dice-display { 
@@ -170,12 +221,10 @@
         .tuner-mod-ui { display: flex; gap: 8px; margin-top: 3px; justify-content: center; }
         .mod-btn { background: #222; border: 1px solid #00ccff; color: #00ccff; font-size: 0.6em; padding: 2px; cursor: pointer; width: 25px; }
         .confirm-btn { margin-top: 3px; background: #00ff66; color: #000; border: none; font-weight: bold; cursor: pointer; padding: 2px 8px; font-size: 0.7em; }
-
         button { background: #333; color: #fff; border: 1px solid #555; padding: 6px 10px; cursor: pointer; font-family: inherit; font-size: 0.8em; }
         button:hover { border-color: #00ffcc; color: #00ffcc; }
         button:disabled { opacity: 0.3; border-color: #333; color: #555; }
-
-        /* 툴팁 */
+        
         #tooltip { 
             position: fixed; display: none; background: rgba(0,0,0,0.95); border: 1px solid #00ffcc; 
             padding: 10px; width: 200px; z-index: 6000; pointer-events: none; 
@@ -183,250 +232,170 @@
         }
         #tt-title { color: #00ffcc; margin: 0 0 5px 0; border-bottom: 1px solid #333; padding-bottom: 3px; }
         #tt-desc { color: #ccc; font-size: 0.85em; line-height: 1.4; margin: 0; }
-
-        /* 시각 효과 */
-        .float-text {
-            position: absolute; font-weight: bold; font-size: 1.5em; pointer-events: none; z-index: 1500;
-            text-shadow: 0 0 5px #000;
-            animation: floatUp 1s ease-out forwards;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
-        }
-        .dmg-pos { color: #ff3333; } 
-        .dmg-neg { color: #cc33ff; } 
-        .heal-pos { color: #00ff66; }
-
-        .sound-wave {
-            position: absolute; border-radius: 50%;
-            border: 3px solid rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
-            opacity: 0; pointer-events: none; z-index: 1200;
-            transform: translate(-50%, -50%);
-        }
-        @keyframes ripple-up {
-            0% { width: 0; height: 0; opacity: 0.8; top: 80%; }
-            100% { width: 150vw; height: 150vw; opacity: 0; top: 0%; }
-        }
-        @keyframes ripple-down {
-            0% { width: 0; height: 0; opacity: 0.8; top: 20%; }
-            100% { width: 150vw; height: 150vw; opacity: 0; top: 100%; }
-        }
-
-        /* 미디어 쿼리: 태블릿/PC */
-        @media (min-width: 768px) {
-            .title-logo { font-size: 4em; }
-            #center-area { height: 140px; max-height: none; }
-            .card { width: 75px; height: 100px; font-size: 0.7em; }
-            .hand-zone { height: 110px; }
-            .field-card { width: 60px; height: 80px; }
-            button { font-size: 1em; padding: 8px 16px; }
-            .dice-display { min-width: 120px; font-size: 1em; }
-            #tooltip { width: 220px; top: auto !important; left: auto !important; transform: none; }
-        }
+        
+        .float-text { position: absolute; font-weight: bold; font-size: 1.5em; pointer-events: none; z-index: 1500; text-shadow: 0 0 5px #000; animation: floatUp 1s ease-out forwards; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.5); opacity: 0; } }
+        .dmg-pos { color: #ff3333; } .dmg-neg { color: #cc33ff; } .heal-pos { color: #00ff66; }
+        .sound-wave { position: absolute; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.8); box-shadow: 0 0 15px rgba(0, 255, 204, 0.5); opacity: 0; pointer-events: none; z-index: 1200; transform: translate(-50%, -50%); }
+        @keyframes ripple-up { 0% { width: 0; height: 0; opacity: 0.8; top: 80%; } 100% { width: 150vw; height: 150vw; opacity: 0; top: 0%; } }
+        @keyframes ripple-down { 0% { width: 0; height: 0; opacity: 0.8; top: 20%; } 100% { width: 150vw; height: 150vw; opacity: 0; top: 100%; } }
     </style>
 </head>
 <body>
 
-<div id="start-screen">
-    <div class="title-logo">🎸 BATTLELICA</div>
-    
-    <div class="mode-select">
-        <div class="mode-btn" id="mode-pvp" onclick="selectMode('pvp')">⚔️ PvP Mode</div>
-        <div class="mode-btn" id="mode-ai" onclick="selectMode('ai')">🤖 vs AI Mode</div>
-    </div>
-    
-    <div class="deck-setup" id="deck-setup">
-        <div class="player-select">
-            <h3 id="p1-label">PLAYER 1</h3>
-            <select id="p1-deck-select"><option value="alt">🟦 얼터너티브</option><option value="metal">🟥 헤비 메탈</option></select>
+<div id="app-frame">
+
+    <div id="start-screen">
+        <div class="title-logo">🎸 BATTLELICA</div>
+        <div class="mode-select">
+            <div class="mode-btn" id="mode-pvp" onclick="selectMode('pvp')">⚔️ PvP Mode</div>
+            <div class="mode-btn" id="mode-ai" onclick="selectMode('ai')">🤖 vs AI Mode</div>
         </div>
-        <div class="player-select">
-            <h3 id="p2-label">PLAYER 2</h3>
-            <select id="p2-deck-select"><option value="metal">🟥 헤비 메탈</option><option value="alt">🟦 얼터너티브</option></select>
+        <div class="deck-setup" id="deck-setup">
+            <div class="player-select"><h3 id="p1-label">PLAYER 1</h3><select id="p1-deck-select"><option value="alt">🟦 얼터너티브</option><option value="metal">🟥 헤비 메탈</option></select></div>
+            <div class="player-select"><h3 id="p2-label">PLAYER 2</h3><select id="p2-deck-select"><option value="metal">🟥 헤비 메탈</option><option value="alt">🟦 얼터너티브</option></select></div>
         </div>
-    </div>
-
-    <div class="start-btn-group">
-        <button id="btn-start-game" onclick="startRoulette()">GAME START</button>
-        <button id="btn-rules" onclick="openRules()">📜 GAME RULES</button>
-    </div>
-</div>
-
-<div id="rule-screen">
-    <div class="rule-header">
-        <div class="rule-title">GUIDE BOOK</div>
-        <button class="close-rule-btn" onclick="closeRules()">X 닫기</button>
-    </div>
-    <div class="rule-body">
-        <div class="rule-section">
-            <h3>1. 게임 컨셉</h3>
-            <p><strong>일렉타(Elegtar)</strong>들이 자신의 신체(기타)를 이펙터에 연결하여 싸우는 1:1 카드 배틀입니다.</p>
-            <p>페달보드(필드)에 이펙터를 장착하고, <strong>튜너(주사위)</strong>를 조율하여 최고의 사운드로 상대를 격파하세요.</p>
-        </div>
-
-        <div class="rule-section">
-            <h3>🎛️ 2. 튜너 (Tuner) 상세 매뉴얼</h3>
-            <p>튜너는 3개의 주사위로 구성되며, 각각 기타의 줄(String)을 상징합니다. 덱 스타일에 따라 판정 기준이 다릅니다.</p>
-            
-            <table class="tuner-table">
-                <thead>
-                    <tr>
-                        <th>주사위</th>
-                        <th>설명 (역할)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class="d6-col"><strong>1d6</strong></td>
-                        <td><strong>고음 (High String):</strong> 섬세한 조율. 보너스는 작지만 성공하기 쉽거나, 실패 시 리스크가 큽니다.</td>
-                    </tr>
-                    <tr>
-                        <td class="d10-col"><strong>1d10</strong></td>
-                        <td><strong>중음 (Mid String):</strong> 탄탄한 허리. 적절한 확률로 준수한 공격력을 줍니다.</td>
-                    </tr>
-                    <tr>
-                        <td class="d20-col"><strong>1d20</strong></td>
-                        <td><strong>저음 (Low String):</strong> 묵직한 베이스. 성공 확률은 낮지만 한 방이 강력합니다.</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h4>🟦 Standard Tuning (얼터너티브)</h4>
-            <p>안정적인 정석 튜닝입니다. 실패해도 불이익이 없습니다.</p>
-            <ul style="list-style: none; padding: 0;">
-                <li>🔴 <strong>1d6:</strong> 4 이상 → <span style="color:#00ffcc">공격력 +1</span></li>
-                <li>🔵 <strong>1d10:</strong> 6 이상 → <span style="color:#00ffcc">공격력 +2</span></li>
-                <li>🟡 <strong>1d20:</strong> 15 이상 → <span style="color:#00ffcc">공격력 +5</span></li>
-            </ul>
-
-            <h4>🟥 Drop-C Tuning (헤비 메탈)</h4>
-            <p>줄을 느슨하게 푼 변칙 튜닝입니다. <strong>실패 시 데미지(버징)</strong>를 입습니다.</p>
-            <ul style="list-style: none; padding: 0;">
-                <li>🔴 <strong>1d6:</strong> <span style="color:#ff3333">1~3 나오면 자해 3 데미지!</span> / 4 이상은 <span style="color:#ff0055">공격력 +3</span></li>
-                <li>🔵 <strong>1d10:</strong> 7 이상 → <span style="color:#ff0055">공격력 +4</span></li>
-                <li>🟡 <strong>1d20:</strong> 18 이상 → <span style="color:#ff0055">공격력 +10</span></li>
-            </ul>
-        </div>
-
-        <div class="rule-section">
-            <h3>3. 턴 진행 순서</h3>
-            <p><span class="highlight">1단계: 시작</span> 에너지+1 획득, 카드 1장 드로우.</p>
-            <p><span class="highlight">2단계: 메인 (세팅)</span> 카드를 사용하여 이펙터를 장착하거나 즉시 효과를 씁니다.</p>
-            <p><span class="highlight" style="color:#ffeb3b">3단계: 튜너 (조율)</span> [튜너] 버튼을 눌러 주사위를 굴립니다. <br>※ <strong>주의:</strong> 튜너를 굴린 후에는 카드를 사용할 수 없습니다!</p>
-            <p><span class="highlight">4단계: 배틀 (공격)</span> 최종 공격력으로 상대를 공격합니다.</p>
-            <p><span class="highlight">5단계: 종료</span> 이펙터 수명이 1 줄어듭니다.</p>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px; color: #666;">
-            - BATTLELICA System v1.1 -
+        <div class="start-btn-group">
+            <button id="btn-start-game" onclick="startRoulette()">GAME START</button>
+            <button id="btn-collection" class="secondary-btn" onclick="openCollection()">📖 CARD COLLECTION</button>
+            <button id="btn-rules" class="secondary-btn" onclick="openRules()">📜 GAME RULES</button>
         </div>
     </div>
-</div>
 
-<div id="roulette-overlay">
-    <div style="color:#aaa; font-size:1.2em; margin-bottom:20px;">선공 결정 중...</div>
-    <div class="roulette-box" id="roulette-text">PLAYER 1</div>
-</div>
-
-<div id="gameover-overlay">
-    <div class="winner-text" id="winner-text">PLAYER 1 WINS!</div>
-    <button id="btn-restart" onclick="location.reload()">처음으로</button>
-</div>
-
-<div id="tooltip"><h4 id="tt-title"></h4><p id="tt-desc"></p><div id="tt-info" style="color:#ffeb3b; font-size:0.8em; margin-top:5px;"></div></div>
-
-<div id="game-container">
-    <div id="p2-area" class="player-area inactive-turn">
-        <div class="status-row">
-            <div><span style="color:#00ccff" id="p2-name-display">P2</span> <span id="p2-deck-name" style="font-size:0.7em;"></span></div>
-            <div class="hp-text">HP:<span id="p2-hp">150</span></div>
-            <div class="energy-text">⚡<span id="p2-energy">0</span></div>
+    <div id="collection-screen">
+        <div class="collection-header">
+            <div style="font-weight:bold; color:#00ffcc; font-size:1.2em;">CARD COLLECTION</div>
+            <button class="close-btn" onclick="closeCollection()">X</button>
         </div>
-        <div class="hand-zone" id="p2-hand"></div>
-        <div class="control-row">
-            <button id="p2-btn-tuner" onclick="actions.rollTuner('p2')">🎲</button>
-            <div class="dice-container">
-                <div class="dice-display"><span id="p2-d6">-</span><span id="p2-d10">-</span><span id="p2-d20">-</span></div>
-                <div id="p2-mod-ui" class="tuner-mod-ui" style="visibility: hidden;">
-                    <button class="mod-btn" onclick="actions.modTuner('p2', 0)">-1</button>
-                    <button class="mod-btn" onclick="actions.modTuner('p2', 1)">-1</button>
-                    <button class="mod-btn" onclick="actions.modTuner('p2', 2)">-1</button>
-                </div>
-                <button id="p2-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p2')">OK</button>
+        <div class="collection-body" id="collection-body"></div>
+    </div>
+
+    <div id="rule-screen">
+        <div class="rule-header"><div class="rule-title">GUIDE BOOK</div><button class="close-rule-btn" onclick="closeRules()">X 닫기</button></div>
+        <div class="rule-body">
+            <div class="rule-section">
+                <h3>🎛️ 2. 튜너 (Tuner) 상세 매뉴얼</h3>
+                <p>튜너는 3개의 주사위로 구성되며, 각각 기타의 줄(String)을 상징합니다.</p>
+                <table class="tuner-table">
+                    <thead><tr><th>주사위</th><th>설명</th></tr></thead>
+                    <tbody>
+                        <tr><td class="d6-col"><strong>1d6</strong></td><td><strong>고음:</strong> 보너스가 작지만 성공하기 쉽거나, 실패 시 리스크가 큼.</td></tr>
+                        <tr><td class="d10-col"><strong>1d10</strong></td><td><strong>중음:</strong> 적절한 확률로 준수한 공격력.</td></tr>
+                        <tr><td class="d20-col"><strong>1d20</strong></td><td><strong>저음:</strong> 성공 확률 낮지만 강력한 한 방.</td></tr>
+                    </tbody>
+                </table>
+                <h4>🟦 Standard Tuning (얼터너티브)</h4>
+                <ul><li>🔴 1d6 (4↑): +1</li><li>🔵 1d10 (6↑): +2</li><li>🟡 1d20 (15↑): +5</li></ul>
+                <h4>🟥 Drop-C Tuning (헤비 메탈)</h4>
+                <ul><li>🔴 1d6 (1~3): <span style="color:red">자해 3</span> / (4↑): +3</li><li>🔵 1d10 (7↑): +4</li><li>🟡 1d20 (18↑): +10</li></ul>
             </div>
-            <button id="p2-btn-attack" onclick="actions.attack('p2')" disabled>⚔️</button>
         </div>
-        <div class="field-zone" id="p2-field"></div>
     </div>
 
-    <div id="center-area">
-        <div id="game-log"></div>
-        <div id="tuner-guide"><div style="color:#00ffcc; font-weight:bold; border-bottom:1px solid #444; margin-bottom:2px;">MANUAL</div><div id="guide-content"></div></div>
-    </div>
+    <div id="roulette-overlay"><div style="color:#aaa;">선공 결정 중...</div><div class="roulette-box" id="roulette-text">PLAYER 1</div></div>
+    <div id="gameover-overlay"><div class="winner-text" id="winner-text"></div><button id="btn-restart" onclick="location.reload()">처음으로</button></div>
+    <div id="tooltip"><h4 id="tt-title"></h4><p id="tt-desc"></p><div id="tt-info" style="color:#ffeb3b; font-size:0.8em; margin-top:5px;"></div></div>
 
-    <div id="p1-area" class="player-area active-turn">
-        <div class="field-zone" id="p1-field"></div>
-        <div class="control-row">
-            <button id="p1-btn-tuner" onclick="actions.rollTuner('p1')">🎲</button>
-            <div class="dice-container">
-                <div class="dice-display"><span id="p1-d6">-</span><span id="p1-d10">-</span><span id="p1-d20">-</span></div>
-                <div id="p1-mod-ui" class="tuner-mod-ui" style="visibility: hidden;">
-                    <button class="mod-btn" onclick="actions.modTuner('p1', 0)">-1</button>
-                    <button class="mod-btn" onclick="actions.modTuner('p1', 1)">-1</button>
-                    <button class="mod-btn" onclick="actions.modTuner('p1', 2)">-1</button>
+    <div id="game-container">
+        <div id="p2-area" class="player-area inactive-turn">
+            <div class="status-row"><div><span style="color:#00ccff" id="p2-name-display">P2</span> <span id="p2-deck-name" style="font-size:0.7em;"></span></div><div class="hp-text">HP:<span id="p2-hp">150</span></div><div class="energy-text">⚡<span id="p2-energy">0</span></div></div>
+            <div class="hand-zone" id="p2-hand"></div>
+            <div class="control-row">
+                <button id="p2-btn-tuner" onclick="actions.rollTuner('p2')">🎲</button>
+                <div class="dice-container">
+                    <div class="dice-display"><span id="p2-d6">-</span><span id="p2-d10">-</span><span id="p2-d20">-</span></div>
+                    <div id="p2-mod-ui" class="tuner-mod-ui" style="visibility: hidden;"><button class="mod-btn" onclick="actions.modTuner('p2', 0)">-1</button><button class="mod-btn" onclick="actions.modTuner('p2', 1)">-1</button><button class="mod-btn" onclick="actions.modTuner('p2', 2)">-1</button></div>
+                    <button id="p2-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p2')">OK</button>
                 </div>
-                <button id="p1-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p1')">OK</button>
+                <button id="p2-btn-attack" onclick="actions.attack('p2')" disabled>⚔️</button>
             </div>
-            <button id="p1-btn-attack" onclick="actions.attack('p1')" disabled>⚔️</button>
+            <div class="field-zone" id="p2-field"></div>
         </div>
-        <div class="hand-zone" id="p1-hand"></div>
-        <div class="status-row">
-            <div><span style="color:#00ffcc" id="p1-name-display">P1</span> <span id="p1-deck-name" style="font-size:0.7em;"></span></div>
-            <div class="hp-text">HP:<span id="p1-hp">150</span></div>
-            <div class="energy-text">⚡<span id="p1-energy">0</span></div>
+        <div id="center-area"><div id="game-log"></div><div id="tuner-guide"><div style="color:#00ffcc; font-weight:bold; border-bottom:1px solid #444; margin-bottom:2px;">MANUAL</div><div id="guide-content"></div></div></div>
+        <div id="p1-area" class="player-area active-turn">
+            <div class="field-zone" id="p1-field"></div>
+            <div class="control-row">
+                <button id="p1-btn-tuner" onclick="actions.rollTuner('p1')">🎲</button>
+                <div class="dice-container">
+                    <div class="dice-display"><span id="p1-d6">-</span><span id="p1-d10">-</span><span id="p1-d20">-</span></div>
+                    <div id="p1-mod-ui" class="tuner-mod-ui" style="visibility: hidden;"><button class="mod-btn" onclick="actions.modTuner('p1', 0)">-1</button><button class="mod-btn" onclick="actions.modTuner('p1', 1)">-1</button><button class="mod-btn" onclick="actions.modTuner('p1', 2)">-1</button></div>
+                    <button id="p1-mod-confirm" class="confirm-btn" style="display:none;" onclick="actions.confirmTuner('p1')">OK</button>
+                </div>
+                <button id="p1-btn-attack" onclick="actions.attack('p1')" disabled>⚔️</button>
+            </div>
+            <div class="hand-zone" id="p1-hand"></div>
+            <div class="status-row"><div><span style="color:#00ffcc" id="p1-name-display">P1</span> <span id="p1-deck-name" style="font-size:0.7em;"></span></div><div class="hp-text">HP:<span id="p1-hp">150</span></div><div class="energy-text">⚡<span id="p1-energy">0</span></div></div>
         </div>
     </div>
-</div>
 
-<script>
-    // --- 룰북 UI 함수 ---
+</div> <script>
     function openRules() { document.getElementById('rule-screen').style.display = 'flex'; }
     function closeRules() { document.getElementById('rule-screen').style.display = 'none'; }
+    
+    // --- 도감 기능 ---
+    function openCollection() {
+        const screen = document.getElementById('collection-screen');
+        const body = document.getElementById('collection-body');
+        body.innerHTML = '';
+        
+        const decks = { "🟦 얼터너티브 덱": DECKS.alt, "🟥 헤비 메탈 덱": DECKS.metal };
+        
+        for (const [name, list] of Object.entries(decks)) {
+            const section = document.createElement('div');
+            section.className = 'deck-section';
+            section.innerHTML = `<div class="deck-title">${name}</div>`;
+            const grid = document.createElement('div');
+            grid.className = 'card-grid';
+            
+            const uniqueCards = [];
+            const seen = new Set();
+            list.forEach(c => { if(!seen.has(c.name)){ seen.add(c.name); uniqueCards.push(c); }});
 
-    // [덱 데이터]
+            uniqueCards.forEach(c => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'collection-card-wrapper';
+                wrapper.appendChild(createCardElement(c));
+                grid.appendChild(wrapper);
+            });
+            section.appendChild(grid);
+            body.appendChild(section);
+        }
+        screen.style.display = 'flex';
+    }
+    function closeCollection() { document.getElementById('collection-screen').style.display = 'none'; }
+
+    // [덱 데이터] - 이미지 적용
     const DECKS = {
         alt: [
-            ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"[OD] 매턴 5 데미지."}),
-            ...Array(3).fill({name:"베테랑", type:"eff_atk", cost:2, val:10, life:2, color:"#ff5555", desc:"[OD] 매턴 10 데미지."}),
-            ...Array(2).fill({name:"리스키", type:"eff_risky", cost:2, val:25, fail:5, life:2, color:"#ff0000", desc:"[Dist] 매턴 30%확률 25뎀 (실패 5)."}),
-            ...Array(1).fill({name:"피어스", type:"eff_pierce", cost:3, val:12, life:2, color:"#cc0000", desc:"[Fuzz] 매턴 12 관통 데미지."}),
-            ...Array(1).fill({name:"마스터", type:"eff_atk", cost:5, val:25, life:2, color:"#ff5555", desc:"[OD] 매턴 25 데미지."}),
-            ...Array(1).fill({name:"킵캄", type:"eff_delay", cost:5, val:60, life:2, color:"#ffee00", desc:"[Delay] 1턴 대기 후 2턴째 60 폭발."}),
+            ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"[OD] 매턴 5 데미지.", img:"OD_rookie.png"}),
+            ...Array(3).fill({name:"베테랑", type:"eff_atk", cost:2, val:10, life:2, color:"#ff5555", desc:"매턴 10 데미지.", img:"OD_veteran.png"}),
+            ...Array(1).fill({name:"마스터", type:"eff_atk", cost:5, val:25, life:2, color:"#ff5555", desc:"[OD] 매턴 25 데미지.", img:"OD_master.png"}),
+            ...Array(2).fill({name:"리스키", type:"eff_risky", cost:2, val:25, fail:5, life:2, color:"#ff0000", desc:"[Dist] 매턴 30%확률 25뎀."}),
+            ...Array(1).fill({name:"피어스", type:"eff_pierce", cost:3, val:12, life:2, color:"#cc0000", desc:"[Fuzz] 매턴 12 관통."}),
+            ...Array(1).fill({name:"킵캄", type:"eff_delay", cost:5, val:60, life:2, color:"#ffee00", desc:"[Delay] 이번 턴 공격불가, 다음 턴 60."}),
             ...Array(2).fill({name:"터틀", type:"eff_def", cost:1, val:5, life:2, color:"#00ccff", desc:"[Phaser] 매턴 방어 +5."}),
-            ...Array(1).fill({name:"소프티", type:"eff_heal", cost:1, val:4, life:2, color:"#00ccff", desc:"[Chorus] 매턴 체력 4 회복."}),
-            ...Array(1).fill({name:"너지", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너 주사위값 -1 보정 가능."}),
-            ...Array(1).fill({name:"플립", type:"eff_buff", cost:2, val:5, life:2, color:"#00ccff", desc:"[Oct] 매턴 공격보정 +5."}),
+            ...Array(1).fill({name:"소프티", type:"eff_heal", cost:1, val:4, life:2, color:"#00ccff", desc:"[Chorus] 매턴 체력 +4."}),
+            ...Array(1).fill({name:"너지", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너값 -1 보정."}),
+            ...Array(1).fill({name:"플립", type:"eff_buff", cost:2, val:5, life:2, color:"#00ccff", desc:"[Oct] 매턴 공격 +5."}),
             ...Array(2).fill({name:"칠리", type:"inst_heal", cost:1, val:10, color:"#aaaaaa", desc:"즉시 체력 10 회복."}),
             ...Array(3).fill({name:"소형건전지", type:"inst_energy", cost:0, val:1, color:"#ffff00", desc:"에너지 +1"}),
             ...Array(2).fill({name:"중형건전지", type:"inst_energy", cost:2, val:3, color:"#ffff00", desc:"에너지 +3"}),
             ...Array(3).fill({name:"슬라이딩", type:"inst_draw", cost:1, val:1, color:"#aaaaaa", desc:"1장 드로우."}),
-            ...Array(2).fill({name:"해머링", type:"inst_draw", cost:0, val:1, color:"#aaaaaa", desc:"덱 조작 (드로우로 구현)."}),
-            ...Array(2).fill({name:"너지(버프)", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너 주사위값 -1 보정 가능."})
+            ...Array(2).fill({name:"해머링", type:"inst_draw", cost:0, val:1, color:"#aaaaaa", desc:"덱 조작."}),
+            ...Array(2).fill({name:"너지(버프)", type:"eff_nudge", cost:1, val:0, life:2, color:"#00ccff", desc:"[Comp] 튜너값 -1 보정."})
         ],
         metal: [
-            ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"매턴 5 데미지."}),
+            ...Array(3).fill({name:"루키", type:"eff_atk", cost:1, val:5, life:2, color:"#ff5555", desc:"매턴 5 데미지.", img:"OD_rookie.png"}),
             ...Array(4).fill({name:"하이게인", type:"eff_self", cost:2, val:12, self:4, life:2, color:"#ff0000", desc:"매턴 12뎀 / 나에게 4뎀."}),
-            ...Array(3).fill({name:"리스키", type:"eff_risky", cost:2, val:25, fail:5, life:2, color:"#ff0000", desc:"매턴 30%확률 25뎀 (실패 5)."}),
-            ...Array(2).fill({name:"피어스", type:"eff_pierce", cost:3, val:10, life:2, color:"#cc0000", desc:"매턴 10 관통 데미지."}),
+            ...Array(3).fill({name:"리스키", type:"eff_risky", cost:2, val:25, fail:5, life:2, color:"#ff0000", desc:"매턴 30%확률 25뎀."}),
+            ...Array(2).fill({name:"피어스", type:"eff_pierce", cost:3, val:10, life:2, color:"#cc0000", desc:"매턴 10 관통."}),
             ...Array(1).fill({name:"데스메탈", type:"eff_atk", cost:5, val:20, life:2, color:"#ff5555", desc:"매턴 20 데미지."}),
-            ...Array(3).fill({name:"노이즈게이트", type:"eff_gate", cost:1, val:4, life:2, color:"#00ccff", desc:"매턴 4이하 데미지 무효화."}),
+            ...Array(3).fill({name:"노이즈게이트", type:"eff_gate", cost:1, val:4, life:2, color:"#00ccff", desc:"매턴 4이하 무효화."}),
             ...Array(1).fill({name:"플립", type:"eff_buff", cost:2, val:5, life:2, color:"#00ccff", desc:"매턴 공격보정 +5."}),
-            ...Array(2).fill({name:"스래쉬", type:"inst_thrash", cost:4, val:12, color:"#ffffff", desc:"패 모두 버림. 장당 12 데미지."}),
-            ...Array(3).fill({name:"팜뮤트", type:"inst_buff", cost:1, val:5, color:"#aaaaaa", desc:"이번 턴 공격력 +5."}),
+            ...Array(2).fill({name:"스래쉬", type:"inst_thrash", cost:4, val:12, color:"#ffffff", desc:"패 버림. 장당 12뎀."}),
+            ...Array(3).fill({name:"팜뮤트", type:"inst_buff", cost:1, val:5, color:"#aaaaaa", desc:"이번 턴 공격 +5."}),
             ...Array(3).fill({name:"소형건전지", type:"inst_energy", cost:0, val:1, color:"#ffff00", desc:"에너지 +1"}),
-            ...Array(3).fill({name:"오버히트", type:"inst_eng_harm", cost:0, val:2, self:5, color:"#ffaa00", desc:"에너지 +2 / 나에게 5뎀."}),
+            ...Array(3).fill({name:"오버히트", type:"inst_eng_harm", cost:0, val:2, self:5, color:"#ffaa00", desc:"에너지 +2 / 나 -5."}),
             ...Array(2).fill({name:"슬라이딩", type:"inst_draw", cost:1, val:1, color:"#aaaaaa", desc:"1장 드로우."})
         ]
     };
@@ -436,26 +405,34 @@
     let tempDice = { d6:0, d10:0, d20:0 };
     let activeNudges = 0;
 
-    // --- 시각 효과 ---
+    // --- 시각 효과/기타 함수 ---
     function showFloatingText(targetId, text, type) {
         const area = document.getElementById(`${targetId}-area`);
         const el = document.createElement('div');
-        el.className = `float-text ${type}`;
-        el.innerText = text;
+        el.className = `float-text ${type}`; el.innerText = text;
         el.style.left = '50%'; el.style.top = '50%'; el.style.transform = 'translate(-50%, -50%)';
-        area.appendChild(el);
-        setTimeout(() => el.remove(), 1000);
+        area.appendChild(el); setTimeout(() => el.remove(), 1000);
     }
-
     function showAttackWave(attackerId) {
         const gameContainer = document.getElementById('game-container');
-        const wave = document.createElement('div');
-        wave.className = 'sound-wave';
-        wave.style.left = '50%';
+        const wave = document.createElement('div'); wave.className = 'sound-wave'; wave.style.left = '50%';
         if(attackerId === 'p1') wave.style.animation = 'ripple-up 0.6s ease-out forwards';
         else wave.style.animation = 'ripple-down 0.6s ease-out forwards';
-        gameContainer.appendChild(wave);
-        setTimeout(() => wave.remove(), 600);
+        gameContainer.appendChild(wave); setTimeout(() => wave.remove(), 600);
+    }
+    function createCardElement(c, isPlayable=false, onClick=null) {
+        const el = document.createElement('div'); el.className = 'card';
+        if (c.img) {
+            el.classList.add('full-art'); el.style.backgroundImage = `url('${c.img}')`;
+            el.innerHTML = `<div class="card-name"></div><div class="card-cost"></div><div class="card-desc"></div>`;
+        } else {
+            el.style.borderColor = c.color;
+            el.innerHTML = `<div class="card-name">${c.name}</div><div class="card-cost">⚡${c.cost}</div><div class="card-type">${c.type.split('_')[1]||'skill'}</div>`;
+        }
+        if (isPlayable && onClick) el.onclick = onClick;
+        else el.onclick = (e) => { showTooltip(e, c); setTimeout(hideTooltip, 1500); };
+        el.onmouseenter = e => showTooltip(e, c); el.onmouseleave = hideTooltip;
+        return el;
     }
 
     // --- 게임 로직 ---
@@ -466,15 +443,9 @@
         document.getElementById(`mode-${mode}`).classList.add('selected');
         document.getElementById('deck-setup').classList.add('visible');
         document.getElementById('btn-start-game').classList.add('visible');
-        if(mode === 'ai') {
-            document.getElementById('p1-label').innerText = "MY DECK";
-            document.getElementById('p2-label').innerText = "AI DECK";
-        } else {
-            document.getElementById('p1-label').innerText = "PLAYER 1";
-            document.getElementById('p2-label').innerText = "PLAYER 2";
-        }
+        if(mode === 'ai') { document.getElementById('p1-label').innerText = "MY DECK"; document.getElementById('p2-label').innerText = "AI DECK"; } 
+        else { document.getElementById('p1-label').innerText = "PLAYER 1"; document.getElementById('p2-label').innerText = "PLAYER 2"; }
     }
-
     function startRoulette() {
         document.getElementById('start-screen').style.display = 'none';
         const overlay = document.getElementById('roulette-overlay');
@@ -487,13 +458,9 @@
             text.className = `roulette-box roulette-p${currentP}`;
             count++;
             if (count > 20) speed += 20; 
-            if (count > 30) {
-                clearInterval(interval);
-                finalizeStart(currentP === 1 ? 'p1' : 'p2');
-            }
+            if (count > 30) { clearInterval(interval); finalizeStart(currentP === 1 ? 'p1' : 'p2'); }
         }, 100);
     }
-
     function finalizeStart(firstPlayer) {
         setTimeout(() => {
             document.getElementById('roulette-overlay').style.display = 'none';
@@ -501,34 +468,20 @@
             startGame(firstPlayer);
         }, 1000);
     }
-
     function startGame(activePid) {
         const p1Type = document.getElementById('p1-deck-select').value;
         const p2Type = document.getElementById('p2-deck-select').value;
-        game.p1 = new Player('p1', p1Type);
-        game.p2 = new Player('p2', p2Type);
-        game.turn = 1;
-        game.active = activePid;
-        
-        if (game.mode === 'ai') {
-            game.aiId = 'p2';
-            document.getElementById('p1-name-display').innerText = "YOU"; 
-            document.getElementById('p2-name-display').innerText = "AI";
-        }
+        game.p1 = new Player('p1', p1Type); game.p2 = new Player('p2', p2Type);
+        game.turn = 1; game.active = activePid;
+        if (game.mode === 'ai') { game.aiId = 'p2'; document.getElementById('p1-name-display').innerText = "YOU"; document.getElementById('p2-name-display').innerText = "AI"; }
         document.getElementById('p1-deck-name').innerText = p1Type.toUpperCase();
         document.getElementById('p2-deck-name').innerText = p2Type.toUpperCase();
         log("=== BATTLE START ===");
-        
         const second = activePid === 'p1' ? 'p2' : 'p1';
         setTimeout(() => {
-            log(`🍀 후공 럭키배터리 체크...`);
-            if(Math.random() < 0.5) {
-                game[second].energy += 1;
-                log("🎉 성공! 에너지 +1");
-                showFloatingText(second, "+1 ENERGY", "heal-pos");
-            } else log("💨 실패.");
-            game.p1.draw(5); game.p2.draw(5);
-            startTurn();
+            log(`🍀 후공 럭키배터리...`);
+            if(Math.random() < 0.5) { game[second].energy += 1; log("🎉 성공! +1 Energy"); showFloatingText(second, "+1 ENERGY", "heal-pos"); } else log("💨 실패.");
+            game.p1.draw(5); game.p2.draw(5); startTurn();
         }, 800);
     }
 
@@ -538,38 +491,33 @@
             this.deck = JSON.parse(JSON.stringify(DECKS[type])).sort(()=>Math.random()-0.5);
             this.deck.forEach(c => c.uid = Math.random());
             this.hand = []; this.field = []; this.trash = [];
-            this.turnStats = { atk:0, def:0, gate:0 };
+            this.turnStats = { atk:0, def:0, gate:0 }; 
             this.tunerRolled = false;
+            this.skipAttack = false; // 킵캄 등 공격 불가 플래그
         }
         draw(n) {
             for(let i=0; i<n; i++) {
                 if(this.hand.length>=6) break;
-                if(!this.deck.length) {
-                    if(!this.trash.length) break;
-                    this.deck = this.trash.sort(()=>Math.random()-0.5); this.trash=[];
-                    log("🔄 덱 리필");
-                }
+                if(!this.deck.length) { if(!this.trash.length) break; this.deck = this.trash.sort(()=>Math.random()-0.5); this.trash=[]; log("🔄 덱 리필"); }
                 this.hand.push(this.deck.pop());
             }
         }
     }
 
     function startTurn() {
-        const p = game[game.active];
-        p.energy = Math.min(10, p.energy+1);
-        p.draw(1);
-        p.tunerRolled = false;
+        const p = game[game.active]; 
+        p.energy = Math.min(10, p.energy+1); 
+        p.draw(1); 
+        p.tunerRolled = false; 
+        p.skipAttack = false; // 턴 시작시 초기화
         p.turnStats = { atk:0, def:0, gate:0 };
         
-        document.getElementById(`${game.active}-d6`).innerText = "-";
-        document.getElementById(`${game.active}-d10`).innerText = "-";
+        document.getElementById(`${game.active}-d6`).innerText = "-"; 
+        document.getElementById(`${game.active}-d10`).innerText = "-"; 
         document.getElementById(`${game.active}-d20`).innerText = "-";
+        document.getElementById('p1-mod-ui').style.visibility = 'hidden'; document.getElementById('p2-mod-ui').style.visibility = 'hidden';
+        document.getElementById('p1-mod-confirm').style.display = 'none'; document.getElementById('p2-mod-confirm').style.display = 'none';
         
-        document.getElementById('p1-mod-ui').style.visibility = 'hidden';
-        document.getElementById('p2-mod-ui').style.visibility = 'hidden';
-        document.getElementById('p1-mod-confirm').style.display = 'none';
-        document.getElementById('p2-mod-confirm').style.display = 'none';
-
         updateGuide(p.type);
         log(`\n=== TURN ${game.turn} : ${game.active.toUpperCase()} ===`);
         
@@ -581,268 +529,148 @@
             if(c.type === 'eff_buff') p.turnStats.atk += c.val;
             if(c.type === 'eff_heal') heal += c.val;
         });
-        if(heal > 0) {
-            p.hp = Math.min(150, p.hp + heal);
-            log(`💚 필드 효과: 체력 +${heal}`);
-            showFloatingText(game.active, `+${heal}`, "heal-pos");
-        }
+        if(heal > 0) { p.hp = Math.min(150, p.hp + heal); log(`💚 필드 효과: +${heal} HP`); showFloatingText(game.active, `+${heal}`, "heal-pos"); }
+        
         render();
         if(game.mode === 'ai' && game.active === game.aiId) setTimeout(aiAction, 1000);
     }
 
+    // AI 로직
     function aiAction() {
-        const ai = game.p2;
-        const handIndices = ai.hand.map((_, i) => i);
+        const ai = game.p2; const handIndices = ai.hand.map((_, i) => i);
         for (let i of handIndices) {
-            const c = ai.hand[i];
-            if (!c) continue; 
+            const c = ai.hand[i]; if (!c) continue; 
             if(c.type.startsWith('eff_') && ai.field.length >= 3) continue;
-            if (c.cost <= ai.energy) {
-                actions.playCard(game.active, i);
-                setTimeout(aiAction, 800); 
-                return; 
-            }
+            if (c.cost <= ai.energy) { actions.playCard(game.active, i); setTimeout(aiAction, 800); return; }
         }
-        if (!ai.tunerRolled) {
-            actions.rollTuner(game.active);
-            setTimeout(() => { 
-                if(activeNudges > 0) actions.confirmTuner(game.active);
-                setTimeout(() => actions.attack(game.active), 500); 
-            }, 1500); 
-        }
+        if (!ai.tunerRolled) { actions.rollTuner(game.active); setTimeout(() => { if(activeNudges > 0) actions.confirmTuner(game.active); setTimeout(() => actions.attack(game.active), 500); }, 1500); }
+        else if (ai.skipAttack) { setTimeout(() => actions.attack(game.active), 1000); } // 킵캄 상태일 때 바로 공격
     }
 
     const actions = {
         rollTuner: (pid) => {
             if(game.active !== pid || animating) return;
-            const p = game[pid];
-            if(p.tunerRolled) return;
-
-            animating = true;
-            document.getElementById(`${pid}-btn-tuner`).disabled = true;
-            p.tunerRolled = true; 
-            render(); 
-
-            let count=0;
-            const intv = setInterval(()=>{
-                document.getElementById(`${pid}-d6`).innerText = r(6);
-                document.getElementById(`${pid}-d10`).innerText = r(10);
-                document.getElementById(`${pid}-d20`).innerText = r(20);
-                count++;
-                if(count>10) { clearInterval(intv); startNudgePhase(pid); }
+            const p = game[pid]; if(p.tunerRolled) return;
+            animating = true; document.getElementById(`${pid}-btn-tuner`).disabled = true; p.tunerRolled = true; render(); 
+            let count=0; const intv = setInterval(()=>{
+                document.getElementById(`${pid}-d6`).innerText = r(6); document.getElementById(`${pid}-d10`).innerText = r(10); document.getElementById(`${pid}-d20`).innerText = r(20);
+                count++; if(count>10) { clearInterval(intv); startNudgePhase(pid); }
             }, 50);
         },
-
         modTuner: (pid, diceIdx) => {
             if(activeNudges <= 0) return alert("보정 횟수 소진!");
-            const keys = ['d6','d10','d20'];
-            const key = keys[diceIdx];
-            if(tempDice[key] > 1) {
-                tempDice[key]--;
-                activeNudges--;
-                document.getElementById(`${pid}-${key}`).innerText = tempDice[key];
-                log(`🔧 [너지] ${key.toUpperCase()} -1 보정 (남은 횟수: ${activeNudges})`);
-                if(activeNudges <= 0) document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden';
-            }
+            const keys = ['d6','d10','d20']; const key = keys[diceIdx];
+            if(tempDice[key] > 1) { tempDice[key]--; activeNudges--; document.getElementById(`${pid}-${key}`).innerText = tempDice[key]; log(`🔧 너지 -1 (${activeNudges}회)`); if(activeNudges <= 0) document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden'; }
         },
-
-        confirmTuner: (pid) => {
-            document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden';
-            document.getElementById(`${pid}-mod-confirm`).style.display = 'none';
-            finalizeTuner(pid);
-        },
+        confirmTuner: (pid) => { document.getElementById(`${pid}-mod-ui`).style.visibility = 'hidden'; document.getElementById(`${pid}-mod-confirm`).style.display = 'none'; finalizeTuner(pid); },
         
         attack: (pid) => {
             if(game.active !== pid || animating) return;
-            const p = game[pid];
-            const opp = game[pid==='p1'?'p2':'p1'];
-            const oppId = pid==='p1'?'p2':'p1';
+            const p = game[pid]; 
             
-            showAttackWave(pid);
+            // [NEW] 킵캄 등으로 공격 금지 상태일 경우
+            if(p.skipAttack) {
+                log("💤 킵캄 충전 중... (공격 0)");
+                setTimeout(() => endTurn(pid), 600);
+                return;
+            }
 
-            let totalDmg = p.turnStats.atk; 
-            let pierceDmg = 0;
-            let selfDmg = 0;
-            
+            const opp = game[pid==='p1'?'p2':'p1']; const oppId = pid==='p1'?'p2':'p1';
+            showAttackWave(pid);
+            let totalDmg = p.turnStats.atk; let pierceDmg = 0; let selfDmg = 0;
             p.field.forEach(item => {
                 const c = item.card;
-                if(c.type === 'eff_delay') {
-                    if(item.life === 1) { log(`💥 킵캄 폭발!`); totalDmg += c.val; }
-                }
+                if(c.type === 'eff_delay') { if(item.life === 1) { log(`💥 킵캄 폭발!`); totalDmg += c.val; } }
                 else if(c.type === 'eff_atk') totalDmg += c.val;
                 else if(c.type === 'eff_self') { totalDmg += c.val; selfDmg += c.self; }
                 else if(c.type === 'eff_pierce') pierceDmg += c.val;
-                else if(c.type === 'eff_risky') {
-                    if(Math.random() < 0.3) { log(`⚡ 리스키 대박!`); totalDmg += c.val; }
-                    else totalDmg += c.fail;
-                }
+                else if(c.type === 'eff_risky') { if(Math.random() < 0.3) { log(`⚡ 리스키 대박!`); totalDmg += c.val; } else totalDmg += c.fail; }
             });
-            
-            if(selfDmg > 0) { 
-                p.hp -= selfDmg; 
-                log(`🩸 이펙터 과부하 -${selfDmg}`);
-                showFloatingText(pid, `-${selfDmg}`, "dmg-neg");
-            }
-            
-            let oppDef = 0;
-            let oppGate = 0;
-            opp.field.forEach(item => {
-                if(item.card.type === 'eff_def') oppDef += item.card.val;
-                if(item.card.type === 'eff_gate') oppGate = Math.max(oppGate, item.card.val);
-            });
-            
-            if(pierceDmg > 0) {
-                if(pierceDmg > oppGate) { 
-                    opp.hp -= pierceDmg; 
-                    log(`🗡️ 관통 피해 ${pierceDmg}`); 
-                    showFloatingText(oppId, `+${pierceDmg}`, "dmg-pos");
-                } else log(`🛡️ 노이즈게이트가 관통 막음`);
-            }
-            
+            if(selfDmg > 0) { p.hp -= selfDmg; log(`🩸 과부하 -${selfDmg}`); showFloatingText(pid, `-${selfDmg}`, "dmg-neg"); }
+            let oppDef = 0; let oppGate = 0;
+            opp.field.forEach(item => { if(item.card.type === 'eff_def') oppDef += item.card.val; if(item.card.type === 'eff_gate') oppGate = Math.max(oppGate, item.card.val); });
+            if(pierceDmg > 0) { if(pierceDmg > oppGate) { opp.hp -= pierceDmg; log(`🗡️ 관통 ${pierceDmg}`); showFloatingText(oppId, `+${pierceDmg}`, "dmg-pos"); } else log(`🛡️ 게이트 방어`); }
             let final = Math.max(0, totalDmg - oppDef);
-            if(final <= oppGate && final > 0) { final = 0; log(`🛡️ 노이즈게이트 방어!`); }
-            
-            if(final > 0) { 
-                opp.hp -= final; 
-                log(`⚔️ 일반 피해 ${final}`); 
-                showFloatingText(oppId, `+${final}`, "dmg-pos");
-            } else if(totalDmg > 0) log(`🛡️ 방어됨`);
-            
-            if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1');
-            else if(opp.hp<=0) gameOver(pid);
-            else setTimeout(() => endTurn(pid), 600);
+            if(final <= oppGate && final > 0) { final = 0; log(`🛡️ 게이트 방어!`); }
+            if(final > 0) { opp.hp -= final; log(`⚔️ 적중 ${final}`); showFloatingText(oppId, `+${final}`, "dmg-pos"); } else if(totalDmg > 0) log(`🛡️ 방어됨`);
+            if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1'); else if(opp.hp<=0) gameOver(pid); else setTimeout(() => endTurn(pid), 600);
         },
         
         playCard: (pid, idx) => {
             if(game.active !== pid || animating) return;
-            const p = game[pid];
-            if(p.tunerRolled) return alert("튜너를 굴린 후에는 카드를 사용할 수 없습니다!");
-
-            const c = p.hand[idx];
-            if(p.energy < c.cost) {
-                if(game.mode!=='ai' || game.active!=='p2') alert("에너지 부족");
-                return;
-            }
-            p.energy -= c.cost;
-            p.hand.splice(idx, 1);
-            hideTooltip();
-            log(`▶ [${c.name}] 사용`);
+            const p = game[pid]; 
+            if(p.tunerRolled) return alert("이미 튜너를 굴렸거나 공격 대기 상태입니다.");
+            
+            const c = p.hand[idx]; 
+            if(p.energy < c.cost) { if(game.mode!=='ai' || game.active!=='p2') alert("에너지 부족"); return; }
+            
+            p.energy -= c.cost; p.hand.splice(idx, 1); hideTooltip(); log(`▶ [${c.name}]`);
             
             if(c.type.startsWith('inst_')) {
-                if(c.type==='inst_heal') {
-                    p.hp = Math.min(150, p.hp+c.val);
-                    showFloatingText(pid, `+${c.val}`, "heal-pos");
-                }
+                if(c.type==='inst_heal') { p.hp = Math.min(150, p.hp+c.val); showFloatingText(pid, `+${c.val}`, "heal-pos"); }
                 if(c.type==='inst_energy') p.energy += c.val;
-                if(c.type==='inst_eng_harm') { 
-                    p.energy+=c.val; p.hp-=c.self; 
-                    showFloatingText(pid, `-${c.self}`, "dmg-neg");
-                }
+                if(c.type==='inst_eng_harm') { p.energy+=c.val; p.hp-=c.self; showFloatingText(pid, `-${c.self}`, "dmg-neg"); }
                 if(c.type==='inst_draw') p.draw(c.val);
                 if(c.type==='inst_buff') p.turnStats.atk += c.val;
-                if(c.type==='inst_thrash') {
-                    const dmg = p.hand.length * c.val;
-                    p.hand = [];
-                    p.turnStats.atk += dmg;
-                    log(`🔥 스래쉬! +${dmg} 데미지 추가`);
-                }
+                if(c.type==='inst_thrash') { const dmg = p.hand.length * c.val; p.hand = []; p.turnStats.atk += dmg; log(`🔥 스래쉬 +${dmg}`); }
                 p.trash.push(c);
-            } 
-            else {
+            } else {
                 if(p.field.length >= 3) { p.energy+=c.cost; p.hand.push(c); return alert("필드 꽉 참"); }
                 if(c.type==='eff_def') p.turnStats.def += c.val;
                 if(c.type==='eff_gate') p.turnStats.gate = Math.max(p.turnStats.gate, c.val);
                 if(c.type==='eff_buff') p.turnStats.atk += c.val;
-                if(c.type==='eff_heal') {
-                    p.hp = Math.min(150, p.hp+c.val);
-                    showFloatingText(pid, `+${c.val}`, "heal-pos");
+                if(c.type==='eff_heal') { p.hp = Math.min(150, p.hp+c.val); showFloatingText(pid, `+${c.val}`, "heal-pos"); }
+                
+                // [NEW] 킵캄 로직: 내는 순간 튜너 금지 + 공격 0 고정
+                if(c.type==='eff_delay') {
+                    p.tunerRolled = true; // 튜너 버튼 비활성화, 공격 버튼 활성화
+                    p.skipAttack = true;  // 공격 시 데미지 0 처리
+                    alert("⚠️ 킵캄 발동! 이번 턴은 튜닝 없이 바로 턴을 종료해야 합니다.");
                 }
+                
                 p.field.push({ card: c, life: 2 });
             }
             render();
         }
     };
 
+    // (이하 함수들 동일: startNudgePhase, finalizeTuner, endTurn, gameOver, updateGuide, render, renderP...)
     function startNudgePhase(pid) {
-        const p = game[pid];
-        tempDice = { d6: r(6), d10: r(10), d20: r(20) };
-        document.getElementById(`${pid}-d6`).innerText = tempDice.d6;
-        document.getElementById(`${pid}-d10`).innerText = tempDice.d10;
-        document.getElementById(`${pid}-d20`).innerText = tempDice.d20;
-
-        activeNudges = 0;
-        p.field.forEach(item => { if(item.card.type === 'eff_nudge') activeNudges++; });
-
+        const p = game[pid]; tempDice = { d6: r(6), d10: r(10), d20: r(20) };
+        document.getElementById(`${pid}-d6`).innerText = tempDice.d6; document.getElementById(`${pid}-d10`).innerText = tempDice.d10; document.getElementById(`${pid}-d20`).innerText = tempDice.d20;
+        activeNudges = 0; p.field.forEach(item => { if(item.card.type === 'eff_nudge') activeNudges++; });
         if(activeNudges > 0) {
-            log(`🔧 너지 발동 가능! (${activeNudges}회)`);
-            if(game.mode === 'ai' && pid === 'p2') {
-                setTimeout(() => actions.confirmTuner(pid), 500);
-            } else {
-                document.getElementById(`${pid}-mod-ui`).style.visibility = 'visible';
-                document.getElementById(`${pid}-mod-confirm`).style.display = 'inline-block';
-            }
-        } else {
-            finalizeTuner(pid);
-        }
+            log(`🔧 너지 가능 (${activeNudges}회)`);
+            if(game.mode === 'ai' && pid === 'p2') setTimeout(() => actions.confirmTuner(pid), 500);
+            else { document.getElementById(`${pid}-mod-ui`).style.visibility = 'visible'; document.getElementById(`${pid}-mod-confirm`).style.display = 'inline-block'; }
+        } else finalizeTuner(pid);
     }
-
     function finalizeTuner(pid) {
-        const p = game[pid];
-        let bonus = 0; let self = 0;
-        const d6 = tempDice.d6; const d10 = tempDice.d10; const d20 = tempDice.d20;
-
-        if(p.type === 'alt') {
-            if(d6>=4) bonus+=1; if(d10>=6) bonus+=2; if(d20>=15) bonus+=5;
-        } else {
-            if(d6<=3) { self+=3; document.getElementById(`${pid}-d6`).style.color='red'; }
-            else bonus+=3;
-            if(d10>=7) bonus+=4; if(d20>=18) bonus+=10;
-        }
-        
+        const p = game[pid]; let bonus = 0; let self = 0; const d6 = tempDice.d6; const d10 = tempDice.d10; const d20 = tempDice.d20;
+        if(p.type === 'alt') { if(d6>=4) bonus+=1; if(d10>=6) bonus+=2; if(d20>=15) bonus+=5; } 
+        else { if(d6<=3) { self+=3; document.getElementById(`${pid}-d6`).style.color='red'; } else bonus+=3; if(d10>=7) bonus+=4; if(d20>=18) bonus+=10; }
         p.turnStats.atk += bonus;
-        if(self>0) { 
-            p.hp -= self; 
-            log(`🩸 튜너 자해 -${self}`); 
-            showFloatingText(pid, `-${self}`, "dmg-neg");
-        }
-        
-        log(`🎲 튜너 확정: 공격력 +${bonus}`);
-        if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1');
-        
-        animating = false;
-        render();
+        if(self>0) { p.hp -= self; log(`🩸 자해 -${self}`); showFloatingText(pid, `-${self}`, "dmg-neg"); }
+        log(`🎲 확정: 공 +${bonus}`); if(p.hp<=0) gameOver(pid==='p1'?'p2':'p1'); animating = false; render();
     }
-
     function endTurn(pid) {
-        const p = game[pid];
-        p.field = p.field.filter(item => {
-            item.life--;
-            if(item.life <= 0) { p.trash.push(item.card); return false; }
-            return true;
-        });
-        game.turn++;
-        game.active = pid==='p1'?'p2':'p1';
-        startTurn();
+        const p = game[pid]; p.field = p.field.filter(item => { item.life--; if(item.life <= 0) { p.trash.push(item.card); return false; } return true; });
+        game.turn++; game.active = pid==='p1'?'p2':'p1'; startTurn();
     }
-
     function gameOver(winnerId) {
         const name = (game.mode==='ai' && winnerId==='p1') ? "YOU" : (game.mode==='ai' && winnerId==='p2') ? "AI" : (winnerId==='p1' ? "PLAYER 1" : "PLAYER 2");
-        document.getElementById('winner-text').innerText = `${name} WINS!`;
-        document.getElementById('gameover-overlay').style.display = 'flex';
+        document.getElementById('winner-text').innerText = `${name} WINS!`; document.getElementById('gameover-overlay').style.display = 'flex';
     }
-
     function updateGuide(type) {
         const el = document.getElementById('guide-content');
         if(type === 'alt') el.innerHTML = `<div>1d6(4↑):+1</div><div>1d10(6↑):+2</div><div>1d20(15↑):+5</div>`;
         else el.innerHTML = `<div style="color:red">1d6(3↓):자해3</div><div>1d6(4↑):+3</div><div>1d10(7↑):+4</div><div>1d20(18↑):+10</div>`;
     }
-
     function render() {
         renderP('p1'); renderP('p2');
         document.getElementById('p1-area').className = `player-area ${game.active==='p1'?'active-turn':'inactive-turn'}`;
         document.getElementById('p2-area').className = `player-area ${game.active==='p2'?'active-turn':'inactive-turn'}`;
     }
-
     function renderP(pid) {
         const p = game[pid];
         document.getElementById(`${pid}-hp`).innerText = p.hp;
@@ -851,50 +679,41 @@
         const isHumanControl = (game.mode === 'pvp') || (game.mode === 'ai' && pid === 'p1');
         document.getElementById(`${pid}-btn-tuner`).disabled = !isMyTurn || p.tunerRolled || !isHumanControl;
         document.getElementById(`${pid}-btn-attack`).disabled = !isMyTurn || !p.tunerRolled || !isHumanControl;
-        
         const h = document.getElementById(`${pid}-hand`); h.innerHTML = '';
         p.hand.forEach((c, i) => {
-            const el = document.createElement('div'); el.className = 'card';
+            const el = createCardElement(c, true, () => {
+                if(isMyTurn && !p.tunerRolled && isHumanControl) actions.playCard(pid, i);
+            });
             if(p.tunerRolled) el.classList.add('locked');
-            el.style.borderColor = c.color;
-            el.innerHTML = `<div class="card-name">${c.name}</div><div class="card-cost">⚡${c.cost}</div>`;
-            
-            // 모바일 툴팁 위치 조정
-            el.onclick = (e) => {
-                if(!isMyTurn || p.tunerRolled || !isHumanControl) {
-                    showTooltip(e, c); // 터치 시 툴팁 보여주기 (비활성 상태에서도)
-                    setTimeout(hideTooltip, 1500); // 1.5초 후 닫기
-                } else {
-                    actions.playCard(pid, i);
-                }
-            };
-            // 데스크탑 호버
-            el.onmouseenter = e => showTooltip(e, c); el.onmouseleave = hideTooltip;
-            
             h.appendChild(el);
         });
-        
         const f = document.getElementById(`${pid}-field`); f.innerHTML = '';
         p.field.forEach(item => {
-            const el = document.createElement('div'); el.className = 'field-card'; el.style.borderColor = item.card.color;
-            el.innerHTML = `<div style="font-size:0.7em;color:#fff">${item.card.name}</div><div class="life-indicator">${"●".repeat(item.life)}</div>`;
-            el.onclick = (e) => { showTooltip(e, item.card); setTimeout(hideTooltip, 1500); };
-            f.appendChild(el);
+            const el = document.createElement('div'); el.className = 'field-card';
+            if(item.card.img) { el.classList.add('full-art'); el.style.backgroundImage = `url('${item.card.img}')`; el.innerHTML = `<div class="life-indicator">${"●".repeat(item.life)}</div>`; } 
+            else { el.style.borderColor = item.card.color; el.innerHTML = `<div style="font-size:0.7em;color:#fff">${item.card.name}</div><div class="life-indicator">${"●".repeat(item.life)}</div>`; }
+            el.onclick = (e) => { showTooltip(e, item.card); setTimeout(hideTooltip, 1500); }; f.appendChild(el);
         });
     }
-
     function r(n) { return Math.ceil(Math.random()*n); }
     const tooltip = document.getElementById('tooltip');
-    function showTooltip(e, c) {
-        document.getElementById('tt-title').innerText = c.name;
-        document.getElementById('tt-desc').innerText = c.desc;
-        tooltip.style.display = 'block'; 
-    }
+    function showTooltip(e, c) { document.getElementById('tt-title').innerText = c.name; document.getElementById('tt-desc').innerText = c.desc; tooltip.style.display = 'block'; }
     function hideTooltip() { tooltip.style.display='none'; }
-    function log(msg) { 
-        const l = document.getElementById('game-log'); 
-        const d = document.createElement('div'); d.innerText = msg; l.prepend(d); 
+    function log(msg) { const l = document.getElementById('game-log'); const d = document.createElement('div'); d.innerText = msg; l.prepend(d); }
+    function openCollection() {
+        const screen = document.getElementById('collection-screen'); const body = document.getElementById('collection-body'); body.innerHTML = '';
+        const decks = { "🟦 얼터너티브 덱": DECKS.alt, "🟥 헤비 메탈 덱": DECKS.metal };
+        for (const [name, list] of Object.entries(decks)) {
+            const section = document.createElement('div'); section.className = 'deck-section'; section.innerHTML = `<div class="deck-title">${name}</div>`;
+            const grid = document.createElement('div'); grid.className = 'card-grid';
+            const uniqueCards = []; const seen = new Set();
+            list.forEach(c => { if(!seen.has(c.name)){ seen.add(c.name); uniqueCards.push(c); }});
+            uniqueCards.forEach(c => { const wrapper = document.createElement('div'); wrapper.className = 'collection-card-wrapper'; wrapper.appendChild(createCardElement(c)); grid.appendChild(wrapper); });
+            section.appendChild(grid); body.appendChild(section);
+        }
+        screen.style.display = 'flex';
     }
+    function closeCollection() { document.getElementById('collection-screen').style.display = 'none'; }
 </script>
 </body>
 </html>
